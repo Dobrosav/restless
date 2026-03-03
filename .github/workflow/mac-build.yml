@@ -1,12 +1,11 @@
 name: Build Mac App
 
-# This allows you to manually trigger the build from the GitHub Actions tab
 on:
   workflow_dispatch:
 
 jobs:
   build-mac:
-    runs-on: macos-latest # Use a macOS runner
+    runs-on: macos-latest 
 
     steps:
       - name: Checkout code
@@ -15,7 +14,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Or the Node version you are currently using
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install
