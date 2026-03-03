@@ -3,9 +3,6 @@ name: Build Mac App
 on:
   workflow_dispatch:
 
-env:
-  GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
 jobs:
   build-mac:
     runs-on: macos-latest 
@@ -23,10 +20,10 @@ jobs:
         run: npm install
 
       - name: Build Mac App
-        # Explicitno mu zabranjujemo da pokušava publish (-p never)
         run: npm run build && npx electron-builder --mac -p never
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Upload .dmg artifact
         uses: actions/upload-artifact@v4
