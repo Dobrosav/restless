@@ -25,6 +25,8 @@ jobs:
       - name: Build Mac App
         # Explicitno mu zabranjujemo da pokušava publish (-p never)
         run: npm run build && npx electron-builder --mac -p never
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Upload .dmg artifact
         uses: actions/upload-artifact@v4
