@@ -1,0 +1,30 @@
+name: Build Mac App
+
+# This allows you to manually trigger the build from the GitHub Actions tab
+on:
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest # Use a macOS runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Or the Node version you are currently using
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Mac App
+        run: npm run electron:build:mac
+
+      - name: Upload .dmg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Restless-Mac-App
+          path: release/*.dmg
