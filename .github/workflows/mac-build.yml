@@ -3,6 +3,10 @@ name: Build Mac App
 on:
   workflow_dispatch:
 
+# Definišemo token globalno za ceo fajl
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   build-mac:
     runs-on: macos-latest 
@@ -14,15 +18,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '21.8.0' # Promijenjeno na tvoju verziju
+          node-version: '21.8.0' 
 
       - name: Install dependencies
         run: npm install
 
       - name: Build Mac App
-        run: npm run electron:build:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Explicitno mu zabranjujemo da pokušava publish (-p never)
+        run: npm run build && npx electron-builder --mac -p never
 
       - name: Upload .dmg artifact
         uses: actions/upload-artifact@v4
