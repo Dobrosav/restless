@@ -3,7 +3,6 @@ name: Build Mac App
 on:
   workflow_dispatch:
 
-# Definišemo token globalno za ceo fajl
 env:
   GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
