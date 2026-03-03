@@ -1,0 +1,278 @@
+import { useState } from 'react'
+import { useApp } from '../stores/AppContext'
+
+function RequestItem({ request, isActive, onClick, onDelete }: { request: any; isActive: boolean; onClick: () => void; onDelete: () => void }) {
+  const methodColors: Record<string, string> = {
+    GET: 'text-green-400',
+    POST: 'text-yellow-400',
+    PUT: 'text-blue-400',
+    PATCH: 'text-purple-400',
+    DELETE: 'text-red-400',
+  }
+  
+  return (
+    <div className="flex items-center gap-1 group">
+      <button
+        onClick={onClick}
+        className={`flex-1 text-left text-sm py-1 px-2 rounded flex items-center gap-2 ${
+          isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'
+        }`}
+      >
+        <span className={`text-xs font-mono ${methodColors[request.method] || 'text-gray-400'}`}>
+          {request.method}
+        </span>
+        <span className="truncate">{request.name}</span>
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onDelete()
+        }}
+        className="text-xs text-red-400 hover:text-red-300 px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Delete request"
+      >
+        ×
+      </button>
+    </div>
+  )
+}
+
+export function Sidebar() {
+  const { workspace, currentRequest, setCurrentRequest, createRequest, setWorkspace, createCollection, deleteRequest, deleteCollection } = useApp()
+  const [collectionsOpen, setCollectionsOpen] = useState(true)
+  const [showNewCollection, setShowNewCollection] = useState(false)
+  const [newCollectionName, setNewCollectionName] = useState('')
+  const [expandedCollections, setExpandedCollections] = useState<Record<string, boolean>>({})
+
+  const handleImport = async () => {
+    if (!workspace) {
+      alert('Please open a workspace folder first!')
+      return
+    }
+    
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file || !workspace) return
+      
+      try {
+        const text = await file.text()
+        const result = await window.electronAPI.postmanImport(workspace.path, text)
+        
+        if (result.success && result.collectionName) {
+          // Load the imported collection from disk
+          const newCollection = {
+            id: result.collectionName,
+            name: result.collectionName,
+            path: result.collectionDir || '',
+            requests: [] as any[],
+          }
+          
+          // Load all request files from the collection directory
+          const loadRequestsRecursive = async (dirPath: string): Promise<any[]> => {
+            const items = await window.electronAPI.readDir(dirPath)
+            const requests: any[] = []
+            
+            for (const item of items) {
+              if (item.isDirectory) {
+                // Recursively load from subdirectories
+                const subRequests = await loadRequestsRecursive(item.path)
+                requests.push(...subRequests)
+              } else if (item.name.endsWith('.json')) {
+                // Load request file
+                const content = await window.electronAPI.readFile(item.path)
+                if (content) {
+                  try {
+                    const request = JSON.parse(content)
+                    requests.push(request)
+                  } catch (err) {
+                    console.error('Failed to parse request:', err)
+                  }
+                }
+              }
+            }
+            return requests
+          }
+          
+          const requests = await loadRequestsRecursive(result.collectionDir || '')
+          newCollection.requests = requests
+          
+          const newCollections = [...workspace.collections, newCollection]
+          setWorkspace({ ...workspace, collections: newCollections })
+          
+          alert(`Successfully imported collection "${result.collectionName}" with ${requests.length} requests!`)
+        } else {
+          alert('Failed to import collection. ' + (result.error || 'Make sure the file is a valid Postman collection.'))
+        }
+      } catch (err) {
+        console.error('Import error:', err)
+        alert('Failed to import collection. Check console for details.')
+      }
+    }
+    input.click()
+  }
+
+  const handleCreateCollection = async () => {
+    if (!newCollectionName.trim()) return
+    
+    const path = await createCollection(newCollectionName.trim())
+    if (path) {
+      setNewCollectionName('')
+      setShowNewCollection(false)
+    } else {
+      alert('Failed to create collection')
+    }
+  }
+
+  const toggleCollectionExpanded = (collectionId: string) => {
+    setExpandedCollections(prev => ({
+      ...prev,
+      [collectionId]: !prev[collectionId],
+    }))
+  }
+
+  const isCollectionExpanded = (collectionId: string) => {
+    return expandedCollections[collectionId] !== false
+  }
+
+  return (
+    <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
+      <div className="p-3 border-b border-gray-700">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold text-white">API Client</h1>
+          <div className="flex gap-1">
+            <button
+              onClick={handleImport}
+              className="text-xs bg-gray-600 px-2 py-1 rounded hover:bg-gray-700 transition-colors"
+              title="Import Postman Collection"
+            >
+              Import
+            </button>
+            <button
+              onClick={createRequest}
+              className="text-xs bg-blue-600 px-2 py-1 rounded hover:bg-blue-700 transition-colors"
+            >
+              + New
+            </button>
+          </div>
+        </div>
+        {workspace && (
+          <div className="mt-2 text-xs text-gray-400 truncate" title={workspace.path}>
+            📁 {workspace.path.split(/[\\/]/).pop()}
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+        <button
+          onClick={() => setCollectionsOpen(!collectionsOpen)}
+          className="flex items-center w-full text-left text-sm text-gray-300 hover:text-white p-1"
+        >
+          <span className="mr-1">{collectionsOpen ? '▼' : '▶'}</span>
+          Collections
+        </button>
+        
+        {collectionsOpen && workspace && (
+          <div className="space-y-2">
+            {showNewCollection ? (
+              <div className="flex gap-1 mb-2">
+                <input
+                  type="text"
+                  value={newCollectionName}
+                  onChange={(e) => setNewCollectionName(e.target.value)}
+                  placeholder="Collection name"
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCollection()}
+                />
+                <button
+                  onClick={handleCreateCollection}
+                  className="text-xs text-green-400 hover:text-green-300 px-1"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNewCollection(false)
+                    setNewCollectionName('')
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300 px-1"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowNewCollection(true)}
+                className="text-xs text-blue-400 hover:text-blue-300 mb-2"
+              >
+                + New Collection
+              </button>
+            )}
+            {workspace.collections.length === 0 ? (
+              <p className="text-xs text-gray-500 p-2">No collections yet</p>
+            ) : (
+              <div className="space-y-1">
+                {workspace.collections.map((collection) => (
+                  <div key={collection.id} className="group">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => toggleCollectionExpanded(collection.id)}
+                        className="flex items-center flex-1 text-left text-sm text-gray-300 hover:text-white hover:bg-gray-700 p-1 rounded transition-colors"
+                      >
+                        <span className="mr-1 text-xs">{isCollectionExpanded(collection.id) ? '▼' : '▶'}</span>
+                        <span className="text-base">📁</span>
+                        <span className="ml-1 truncate">{collection.name}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete collection "${collection.name}" and all its requests?`)) {
+                            deleteCollection(collection.id)
+                          }
+                        }}
+                        className="text-xs text-red-400 hover:text-red-300 px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete collection"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {isCollectionExpanded(collection.id) && (
+                      <div className="ml-4 mt-1 space-y-1">
+                        {collection.requests.length === 0 ? (
+                          <p className="text-xs text-gray-500 p-1 italic">No requests</p>
+                        ) : (
+                           collection.requests.map((request) => (
+                             <RequestItem
+                               key={request.id}
+                               request={request}
+                               isActive={currentRequest?.id === request.id}
+                               onClick={() => setCurrentRequest(request)}
+                               onDelete={async () => {
+                                 if (confirm(`Delete request "${request.name}"?`)) {
+                                   const success = await deleteRequest(request.id)
+                                   if (!success) {
+                                     alert('Failed to delete request')
+                                   }
+                                 }
+                               }}
+                             />
+                           ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="p-2 border-t border-gray-700">
+        <div className="text-xs text-gray-500">Press Enter to send request</div>
+      </div>
+    </div>
+  )
+}
