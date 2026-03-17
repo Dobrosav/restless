@@ -1,7 +1,7 @@
 {
-  "name": "api-client",
+  "name": "restless",
   "version": "1.0.0",
-  "description": "API Client - Bruno-style desktop application",
+  "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",

@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import { Workspace, ApiRequest, ResponseData, HttpMethod, Environment } from '../types'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { Workspace, ApiRequest, ResponseData, HttpMethod, Environment, Collection } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
 interface AppState {
@@ -33,6 +33,7 @@ interface AppContextType extends AppState {
   updateEnvironment: (env: Environment) => void
   deleteEnvironment: (envId: string) => void
   setEnvironments: (envs: Environment[]) => void
+  refreshWorkspace: () => Promise<void>
 }
 
 const defaultRequest = (): ApiRequest => ({
@@ -56,6 +57,108 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeEnvironment, setActiveEnvironment] = useState<Environment | null>(null)
   const [environments, setEnvironments] = useState<Environment[]>([])
+
+  const refreshWorkspace = async () => {
+    if (!workspace) return
+    
+    try {
+      // 1. Load collections
+      const collections: Collection[] = []
+      
+      const loadRequestsRecursively = async (dirPath: string): Promise<any[]> => {
+        const requests: any[] = []
+        const items = await window.electronAPI.readDir(dirPath)
+        for (const item of items) {
+          if (item.isDirectory) {
+            const subRequests = await loadRequestsRecursively(item.path)
+            requests.push(...subRequests)
+          } else if (item.name.endsWith('.json') && item.name !== 'environments.json') {
+            const content = await window.electronAPI.readFile(item.path)
+            if (content) {
+              try {
+                const request = JSON.parse(content)
+                request.path = item.path
+                requests.push(request)
+              } catch {
+                console.error('Failed to parse:', item.path)
+              }
+            }
+          }
+        }
+        return requests
+      }
+      
+      const items = await window.electronAPI.readDir(workspace.path)
+      for (const item of items) {
+        if (item.isDirectory && item.name !== '.git') {
+          const requests = await loadRequestsRecursively(item.path)
+          collections.push({
+            id: item.name,
+            name: item.name,
+            path: item.path,
+            requests,
+          })
+        }
+      }
+
+      // 2. Load environments
+      let loadedEnvs: Environment[] = []
+      try {
+        const envPath = `${workspace.path}/environments.json`
+        const exists = await window.electronAPI.exists(envPath)
+        if (exists) {
+          const content = await window.electronAPI.readFile(envPath)
+          if (content) {
+            loadedEnvs = JSON.parse(content)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load environments:', error)
+      }
+
+      setWorkspace({
+        ...workspace,
+        collections,
+        environments: loadedEnvs
+      })
+      setEnvironments(loadedEnvs)
+
+    } catch (e) {
+       console.error("Error refreshing workspace:", e)
+    }
+  }
+
+  // Watch for workspace changes to load environments
+  useEffect(() => {
+    if (workspace && workspace.environments) {
+      setEnvironments(workspace.environments)
+      
+      // Restore active environment from local storage if available
+      const savedActiveEnvId = localStorage.getItem(`activeEnv_${workspace.path}`)
+      if (savedActiveEnvId) {
+        const env = workspace.environments.find(e => e.id === savedActiveEnvId)
+        if (env) {
+          setActiveEnvironment(env)
+        }
+      }
+    }
+  }, [workspace?.path]) // Only reload when workspace path changes
+
+  const saveEnvironmentsToDisk = async (envs: Environment[]) => {
+    if (!workspace) return
+    const envPath = `${workspace.path}/environments.json`
+    try {
+      await window.electronAPI.writeFile(envPath, JSON.stringify(envs, null, 2))
+      // Auto-stage with git add
+      try {
+        await window.electronAPI.gitAdd([envPath])
+      } catch (gitError) {
+        console.warn('Failed to auto-stage environments.json:', gitError)
+      }
+    } catch (error) {
+      console.error('Failed to save environments:', error)
+    }
+  }
 
   const createRequest = useCallback(() => {
     const req = defaultRequest()
@@ -148,23 +251,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       name,
       variables: [],
     }
-    setEnvironments(prev => [...prev, env])
+    setEnvironments(prev => {
+      const newEnvs = [...prev, env]
+      saveEnvironmentsToDisk(newEnvs)
+      return newEnvs
+    })
     return env
-  }, [])
+  }, [workspace])
 
   const updateEnvironment = useCallback((env: Environment) => {
-    setEnvironments(prev => prev.map(e => e.id === env.id ? env : e))
+    setEnvironments(prev => {
+      const newEnvs = prev.map(e => e.id === env.id ? env : e)
+      saveEnvironmentsToDisk(newEnvs)
+      return newEnvs
+    })
     if (activeEnvironment?.id === env.id) {
       setActiveEnvironment(env)
     }
-  }, [activeEnvironment])
+  }, [activeEnvironment, workspace])
 
   const deleteEnvironment = useCallback((envId: string) => {
-    setEnvironments(prev => prev.filter(e => e.id !== envId))
+    setEnvironments(prev => {
+      const newEnvs = prev.filter(e => e.id !== envId)
+      saveEnvironmentsToDisk(newEnvs)
+      return newEnvs
+    })
     if (activeEnvironment?.id === envId) {
       setActiveEnvironment(null)
     }
-  }, [activeEnvironment])
+  }, [activeEnvironment, workspace])
 
   const deleteRequest = useCallback(async (requestId: string): Promise<boolean> => {
     if (!workspace) return false
@@ -271,7 +386,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setCurrentRequest,
           setResponse,
           setIsLoading,
-          setActiveEnvironment,
+          setActiveEnvironment: (env) => {
+            setActiveEnvironment(env)
+            if (workspace) {
+              if (env) {
+                localStorage.setItem(`activeEnv_${workspace.path}`, env.id)
+              } else {
+                localStorage.removeItem(`activeEnv_${workspace.path}`)
+              }
+            }
+          },
           createRequest,
           updateRequest,
           saveRequest,
@@ -282,6 +406,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           updateEnvironment,
           deleteEnvironment,
           setEnvironments,
+          refreshWorkspace,
        }}
     >
       {children}

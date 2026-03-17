@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, nativeImage } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { randomUUID } from 'crypto'
@@ -66,6 +66,8 @@ function getWorkspacePath(): string {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    title: 'Restless',
+    icon: nativeImage.createFromPath(path.join(app.getAppPath(), isDev ? 'public/logo.png' : 'dist/logo.png')),
     width: 1400,
     height: 900,
     minWidth: 900,
@@ -326,7 +328,7 @@ ipcMain.handle('git:init', async (_, repoPath: string) => {
     if (!isRepo) {
       await git.init()
     }
-    const userName = getConfig().gitUserName || 'API Client User'
+    const userName = getConfig().gitUserName || 'Restless User'
     const userEmail = getConfig().gitUserEmail || 'api-client@local'
     await git.addConfig('user.email', userEmail)
     await git.addConfig('user.name', userName)
@@ -581,16 +583,21 @@ ipcMain.handle('git:createBranch', async (_, branchName: string) => {
 
 // Helper function to interpolate environment variables
 function interpolateEnvVariables(text: string, environment: any): string {
-  if (!environment || !text) return text
+  if (!text) return text
   
-  let result = text
-  environment.variables
-    .filter((v: any) => v.enabled && v.key)
-    .forEach((v: any) => {
-      const regex = new RegExp(`\\{\\{${v.key}\\}\\}`, 'g')
-      result = result.replace(regex, v.value)
-    })
-  return result
+  // Match both {{var}} and {var}
+  return text.replace(/\{\{([^}]+)\}\}|\{([^}]+)\}/g, (match, keyDouble, keySingle) => {
+    const key = keyDouble || keySingle;
+    
+    // 1. Try to find in environment variables
+    if (environment && environment.variables) {
+      const v = environment.variables.find((v: any) => v.enabled && v.key === key.trim())
+      if (v) return v.value
+    }
+    
+    // 2. Unresolved variable
+    return match
+  })
 }
 
 // Helper function to build auth headers

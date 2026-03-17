@@ -1,6 +1,16 @@
-import { ApiRequest } from '../types'
+import { ApiRequest, Environment } from '../types'
 
-export function generateCurl(request: ApiRequest): string {
+function interpolate(text: string, environment?: Environment | null): string {
+  if (!text || !environment) return text
+  
+  return text.replace(/\{\{([^}]+)\}\}|\{([^}]+)\}/g, (match, keyDouble, keySingle) => {
+    const key = keyDouble || keySingle;
+    const v = environment.variables.find(v => v.enabled && v.key === key.trim())
+    return v ? v.value : match
+  })
+}
+
+export function generateCurl(request: ApiRequest, environment?: Environment | null): string {
   let curl = 'curl'
 
   // Method
@@ -9,12 +19,12 @@ export function generateCurl(request: ApiRequest): string {
   }
 
   // URL with params
-  let url = request.url
+  let url = interpolate(request.url, environment)
   if (request.params.length > 0) {
     const enabledParams = request.params.filter(p => p.enabled && p.key)
     if (enabledParams.length > 0) {
       const queryString = enabledParams
-        .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+        .map(p => `${encodeURIComponent(interpolate(p.key, environment))}=${encodeURIComponent(interpolate(p.value, environment))}`)
         .join('&')
       url += (url.includes('?') ? '&' : '?') + queryString
     }
@@ -25,12 +35,12 @@ export function generateCurl(request: ApiRequest): string {
   // Headers
   const enabledHeaders = request.headers.filter(h => h.enabled && h.key)
   for (const header of enabledHeaders) {
-    curl += ` -H '${header.key}: ${header.value}'`
+    curl += ` -H '${interpolate(header.key, environment)}: ${interpolate(header.value, environment)}'`
   }
 
   // Body
   if (request.body.type !== 'none' && request.body.content) {
-    const bodyContent = request.body.content
+    const bodyContent = interpolate(request.body.content, environment)
     
     if (request.body.type === 'json') {
       curl += ` -H 'Content-Type: application/json'`
@@ -51,17 +61,17 @@ export function generateCurl(request: ApiRequest): string {
 
   // Auth
   if (request.auth.type === 'basic' && request.auth.basic) {
-    const credentials = `${request.auth.basic.username}:${request.auth.basic.password}`
+    const credentials = `${interpolate(request.auth.basic.username, environment)}:${interpolate(request.auth.basic.password, environment)}`
     curl += ` -u '${credentials}'`
   } else if (request.auth.type === 'bearer' && request.auth.bearer) {
-    curl += ` -H 'Authorization: Bearer ${request.auth.bearer.token}'`
+    curl += ` -H 'Authorization: Bearer ${interpolate(request.auth.bearer.token, environment)}'`
   } else if (request.auth.type === 'api-key' && request.auth.apiKey) {
     const location = request.auth.apiKey.in === 'header' ? 'header' : 'query'
     if (location === 'header') {
-      curl += ` -H '${request.auth.apiKey.key}: ${request.auth.apiKey.value}'`
+      curl += ` -H '${interpolate(request.auth.apiKey.key, environment)}: ${interpolate(request.auth.apiKey.value, environment)}'`
     } else {
       const separator = url.includes('?') ? '&' : '?'
-      curl = curl.replace(`'${url}'`, `'${url}${separator}${request.auth.apiKey.key}=${request.auth.apiKey.value}'`)
+      curl = curl.replace(`'${url}'`, `'${url}${separator}${interpolate(request.auth.apiKey.key, environment)}=${interpolate(request.auth.apiKey.value, environment)}'`)
     }
   }
 

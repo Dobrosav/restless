@@ -564,19 +564,19 @@ export function RequestPanel() {
              <div className="p-4 bg-gray-900">
                <div className="bg-gray-800 border border-gray-700 rounded p-3 mb-3 max-h-64 overflow-y-auto">
                  <code className="text-gray-200 text-xs font-mono whitespace-pre-wrap break-all">
-                   {generateCurl(currentRequest)}
+                   {generateCurl(currentRequest, activeEnvironment)}
                  </code>
                </div>
                
                <div className="flex gap-2">
                  <button
                    onClick={() => {
-                     navigator.clipboard.writeText(generateCurl(currentRequest))
+                     navigator.clipboard.writeText(generateCurl(currentRequest, activeEnvironment))
                      alert('cURL command copied to clipboard!')
                    }}
                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium"
                  >
-                   📋 Copy to Clipboard
+                   Copy to Clipboard
                  </button>
                  <button
                    onClick={() => setShowCurlModal(false)}

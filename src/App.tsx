@@ -59,14 +59,31 @@ function AppContent() {
     return collections
   }
 
+  const loadEnvironments = async (dirPath: string) => {
+    try {
+      const envPath = `${dirPath}/environments.json`
+      const exists = await window.electronAPI.exists(envPath)
+      if (exists) {
+        const content = await window.electronAPI.readFile(envPath)
+        if (content) {
+          return JSON.parse(content)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load environments:', error)
+    }
+    return []
+  }
+
   useEffect(() => {
     const initWorkspace = async () => {
       const defaultPath = await window.electronAPI.getDefaultWorkspace()
       const collections = await loadCollections(defaultPath)
+      const environments = await loadEnvironments(defaultPath)
       setWorkspace({
         path: defaultPath,
         collections,
-        environments: [],
+        environments,
       })
       
       const isConfigSet = await window.electronAPI.gitIsConfigSet()
@@ -85,10 +102,11 @@ function AppContent() {
     const dir = await window.electronAPI.openWorkspace()
     if (dir) {
       const collections = await loadCollections(dir)
+      const environments = await loadEnvironments(dir)
       setWorkspace({
         path: dir,
         collections,
-        environments: [],
+        environments,
       })
     }
   }

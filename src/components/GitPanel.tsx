@@ -17,7 +17,7 @@ interface GitPanelProps {
 }
 
 export function GitPanel({ onOpenConfig }: GitPanelProps) {
-  const { workspace } = useApp()
+  const { workspace, refreshWorkspace } = useApp()
   const panelRef = useRef<HTMLDivElement>(null)
    const [isOpen, setIsOpen] = useState(false)
    const [isGitRepo, setIsGitRepo] = useState(false)
@@ -138,6 +138,7 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
       const result = await window.electronAPI.gitPull()
       if (result.success) {
         await checkGitStatus()
+        await refreshWorkspace()
       } else {
         setError(result.error || 'Pull failed')
       }
@@ -172,6 +173,7 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
       const result = await window.electronAPI.gitCheckout(branchName)
       if (result.success) {
         await checkGitStatus()
+        await refreshWorkspace()
         setShowBranchInput(false)
       } else {
         setError(result.error || 'Checkout failed')

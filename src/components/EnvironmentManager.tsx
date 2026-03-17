@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../stores/AppContext'
 import { Environment, KeyValue } from '../types'
 
@@ -13,27 +13,54 @@ export function EnvironmentManager() {
   } = useApp()
   const [isOpen, setIsOpen] = useState(false)
   const [editingEnv, setEditingEnv] = useState<Environment | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [newEnvName, setNewEnvName] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const handleCreate = () => {
-    const name = prompt('Environment name:')
-    if (name) {
-      const env = createEnvironment(name)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // If the dropdown is open, and we click outside the container
+      if (isOpen && containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        // If we are editing, auto-save
+        if (editingEnv) {
+          updateEnvironment(editingEnv)
+          setEditingEnv(null)
+        }
+        // Also close the creating input if open
+        setIsCreating(false)
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isOpen, editingEnv, updateEnvironment])
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newEnvName.trim()) {
+      const env = createEnvironment(newEnvName.trim())
       setEditingEnv(env)
+      setIsCreating(false)
+      setNewEnvName('')
     }
   }
 
   const handleDelete = (envId: string) => {
     if (confirm('Delete this environment?')) {
       deleteEnvironment(envId)
+      if (editingEnv?.id === envId) setEditingEnv(null)
     }
   }
 
   const handleAddVariable = () => {
     if (editingEnv) {
-      updateEnvironment({
+      const newEnv = {
         ...editingEnv,
         variables: [...editingEnv.variables, { key: '', value: '', enabled: true }]
-      })
+      }
+      setEditingEnv(newEnv)
+      updateEnvironment(newEnv)
     }
   }
 
@@ -41,14 +68,18 @@ export function EnvironmentManager() {
     if (editingEnv) {
       const newVars = [...editingEnv.variables]
       newVars[index] = { ...newVars[index], ...updates }
-      updateEnvironment({ ...editingEnv, variables: newVars })
+      const newEnv = { ...editingEnv, variables: newVars }
+      setEditingEnv(newEnv)
+      updateEnvironment(newEnv)
     }
   }
 
   const handleRemoveVariable = (index: number) => {
     if (editingEnv) {
       const newVars = editingEnv.variables.filter((_, i) => i !== index)
-      updateEnvironment({ ...editingEnv, variables: newVars })
+      const newEnv = { ...editingEnv, variables: newVars }
+      setEditingEnv(newEnv)
+      updateEnvironment(newEnv)
     }
   }
 
@@ -77,36 +108,65 @@ export function EnvironmentManager() {
   }
 
   return (
-    <div className="p-2 border-t border-gray-700">
+    <div ref={containerRef} className="p-2 border-t border-gray-700">
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-gray-300">Environments</span>
         <button onClick={() => setIsOpen(false)} className="text-gray-500 hover:text-white">×</button>
       </div>
 
       <div className="space-y-2">
-        <div className="flex gap-2">
-          <select
-            value={activeEnvironment?.id || ''}
-            onChange={(e) => {
-              const env = environments.find(en => en.id === e.target.value) || null
-              setActiveEnvironment(env)
-            }}
-            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white"
-          >
-            <option value="">No Environment</option>
-            {environments.map(env => (
-              <option key={env.id} value={env.id}>{env.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={handleCreate}
-            className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm text-white"
-          >
-            +
-          </button>
-        </div>
+        {!isCreating ? (
+          <div className="flex gap-2">
+            <select
+              value={activeEnvironment?.id || ''}
+              onChange={(e) => {
+                const env = environments.find(en => en.id === e.target.value) || null
+                setActiveEnvironment(env)
+              }}
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white"
+            >
+              <option value="">No Environment</option>
+              {environments.map(env => (
+                <option key={env.id} value={env.id}>{env.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => setIsCreating(true)}
+              className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm text-white"
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleCreateSubmit} className="flex gap-2">
+            <input
+              type="text"
+              autoFocus
+              value={newEnvName}
+              onChange={(e) => setNewEnvName(e.target.value)}
+              placeholder="Environment name..."
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white"
+            />
+            <button
+              type="submit"
+              className="px-2 py-1 bg-green-700 hover:bg-green-600 rounded text-sm text-white"
+            >
+              ✓
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreating(false)
+                setNewEnvName('')
+              }}
+              className="px-2 py-1 bg-red-700 hover:bg-red-600 rounded text-sm text-white"
+            >
+              ✕
+            </button>
+          </form>
+        )}
 
-        {activeEnvironment && (
+        {activeEnvironment && !isCreating && (
           <button
             onClick={() => setEditingEnv(activeEnvironment)}
             className="text-xs text-blue-400 hover:text-blue-300"
@@ -159,7 +219,7 @@ export function EnvironmentManager() {
               </button>
               <button
                 onClick={handleSave}
-                className="text-xs text-green-400 hover:text-green-300"
+                className="text-xs text-green-400 hover:text-green-300 ml-auto"
               >
                 Save
               </button>
@@ -171,7 +231,7 @@ export function EnvironmentManager() {
               </button>
               <button
                 onClick={() => handleDelete(editingEnv.id)}
-                className="text-xs text-red-400 hover:text-red-300 ml-auto"
+                className="text-xs text-red-400 hover:text-red-300"
               >
                 Delete
               </button>

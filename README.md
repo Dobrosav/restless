@@ -1,4 +1,4 @@
-# API Client - Desktop Application
+# Restless - Desktop Application
 
 A Postman alternative built with Electron, React, and TypeScript. Features Bruno-style collection format with full Postman import/export support.
 
