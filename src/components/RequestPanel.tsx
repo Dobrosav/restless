@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useApp } from '../stores/AppContext'
 import { HttpMethod, KeyValue } from '../types'
 import Editor from '@monaco-editor/react'
@@ -82,12 +82,76 @@ function KeyValueEditor({ items, onChange, placeholder = 'Key' }: KeyValueEditor
 }
 
 export function RequestPanel() {
-  const { currentRequest, updateRequest, setResponse, setIsLoading, createRequest, activeEnvironment, workspace, saveRequest, createCollection } = useApp()
+  const { currentRequest, updateRequest, setResponse, setIsLoading, createRequest, activeEnvironment, workspace, saveRequest, createCollection, response } = useApp()
   const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'script'>('params')
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
   const [showNewCollectionInput, setShowNewCollectionInput] = useState(false)
   const [showCurlModal, setShowCurlModal] = useState(false)
+  const urlInputRef = useRef<HTMLInputElement>(null)
+  const responseRef = useRef(response)
+  responseRef.current = response
+  const clearRequest = useCallback(() => {
+    updateRequest({ 
+      url: '', 
+      headers: [], 
+      params: [], 
+      body: { type: 'none', content: '' }, 
+      auth: { type: 'none' } 
+    })
+    setResponse(null)
+  }, [updateRequest, setResponse])
+
+  const handleSendRef = useRef<(() => Promise<void>) | null>(null)
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleSendRef.current?.()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault()
+        setShowSaveDialog(true)
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        clearRequest()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+        e.preventDefault()
+        urlInputRef.current?.focus()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault()
+        if (responseRef.current?.body) {
+          navigator.clipboard.writeText(responseRef.current.body)
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === '1') {
+        e.preventDefault()
+        setActiveTab('params')
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === '2') {
+        e.preventDefault()
+        setActiveTab('headers')
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === '3') {
+        e.preventDefault()
+        setActiveTab('body')
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === '4') {
+        e.preventDefault()
+        setActiveTab('auth')
+      }
+      if (e.key === 'Escape') {
+        setShowSaveDialog(false)
+        setShowCurlModal(false)
+      }
+    }
+    document.addEventListener('keydown', handleGlobalKeyDown)
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [clearRequest])
 
   // Check if current request is already saved
   const isRequestSaved = () => {
@@ -157,10 +221,16 @@ export function RequestPanel() {
       setIsLoading(false)
     }
   }
+  handleSendRef.current = handleSend
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
       handleSend()
+    }
+    if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      setShowSaveDialog(true)
     }
   }
 
@@ -180,6 +250,7 @@ export function RequestPanel() {
         </select>
         
         <input
+          ref={urlInputRef}
           type="text"
           value={currentRequest.url}
           onChange={(e) => updateRequest({ url: e.target.value })}
