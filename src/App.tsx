@@ -6,7 +6,7 @@ import { ResponsePanel } from './components/ResponsePanel'
 import { EnvironmentManager } from './components/EnvironmentManager'
 import { GitPanel } from './components/GitPanel'
 import { GitConfigDialog } from './components/GitConfigDialog'
-import { Collection } from './types'
+import { Collection, Environment } from './types'
 import { useEffect, useState } from 'react'
 
 function AppContent() {
@@ -48,11 +48,26 @@ function AppContent() {
       if (item.isDirectory && item.name !== '.git') {
         const requests = await loadRequestsRecursively(item.path)
         
+        let envs: Environment[] = []
+        try {
+          const envPath = `${item.path}/environments.json`
+          if (await window.electronAPI.exists(envPath)) {
+            const content = await window.electronAPI.readFile(envPath)
+            if (content) envs = JSON.parse(content)
+          }
+        } catch (error) {
+          console.error('Failed to load environments for collection', item.name, error)
+        }
+
+        const activeEnvId = localStorage.getItem(`activeEnv_${item.name}`) || undefined
+
         collections.push({
           id: item.name,
           name: item.name,
           path: item.path,
           requests,
+          environments: envs,
+          activeEnvironmentId: activeEnvId
         })
       }
     }
@@ -60,31 +75,15 @@ function AppContent() {
     return collections
   }
 
-  const loadEnvironments = async (dirPath: string) => {
-    try {
-      const envPath = `${dirPath}/environments.json`
-      const exists = await window.electronAPI.exists(envPath)
-      if (exists) {
-        const content = await window.electronAPI.readFile(envPath)
-        if (content) {
-          return JSON.parse(content)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load environments:', error)
-    }
-    return []
-  }
+
 
   useEffect(() => {
     const initWorkspace = async () => {
       const defaultPath = await window.electronAPI.getDefaultWorkspace()
       const collections = await loadCollections(defaultPath)
-      const environments = await loadEnvironments(defaultPath)
       setWorkspace({
         path: defaultPath,
         collections,
-        environments,
       })
       
       const isConfigSet = await window.electronAPI.gitIsConfigSet()
@@ -103,11 +102,9 @@ function AppContent() {
     const dir = await window.electronAPI.openWorkspace()
     if (dir) {
       const collections = await loadCollections(dir)
-      const environments = await loadEnvironments(dir)
       setWorkspace({
         path: dir,
         collections,
-        environments,
       })
     }
   }

@@ -3,8 +3,17 @@ import { useApp } from '../stores/AppContext'
 import Editor from '@monaco-editor/react'
 
 export function ResponsePanel() {
-  const { response, isLoading } = useApp()
+  const { response, setResponse, isLoading } = useApp()
   const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'cookies'>('body')
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    if (response) {
+      navigator.clipboard.writeText(response.body)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -48,7 +57,7 @@ export function ResponsePanel() {
         </div>
       </div>
 
-      <div className="border-b border-gray-700">
+      <div className="border-b border-gray-700 flex justify-between items-center pr-2">
         <div className="flex">
           {(['body', 'headers', 'cookies'] as const).map((tab) => (
             <button
@@ -63,6 +72,22 @@ export function ResponsePanel() {
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCopy}
+            className="text-xs px-2 py-1 text-gray-400 hover:text-white rounded hover:bg-gray-700 transition-colors flex items-center gap-1"
+            title="Copy Response Body"
+          >
+            {copied ? '✓ Copied' : '📋 Copy'}
+          </button>
+          <button
+            onClick={() => setResponse(null)}
+            className="text-xs px-2 py-1 text-gray-400 hover:text-red-400 rounded hover:bg-gray-700 transition-colors flex items-center gap-1"
+            title="Clear Response"
+          >
+            ✕ Clear
+          </button>
         </div>
       </div>
 

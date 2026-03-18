@@ -9,7 +9,8 @@ export function EnvironmentManager() {
     setActiveEnvironment, 
     createEnvironment, 
     updateEnvironment, 
-    deleteEnvironment 
+    deleteEnvironment,
+    currentCollection
   } = useApp()
   const [isOpen, setIsOpen] = useState(false)
   const [editingEnv, setEditingEnv] = useState<Environment | null>(null)
@@ -19,14 +20,11 @@ export function EnvironmentManager() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // If the dropdown is open, and we click outside the container
       if (isOpen && containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        // If we are editing, auto-save
         if (editingEnv) {
           updateEnvironment(editingEnv)
           setEditingEnv(null)
         }
-        // Also close the creating input if open
         setIsCreating(false)
         setIsOpen(false)
       }
@@ -40,7 +38,9 @@ export function EnvironmentManager() {
     e.preventDefault()
     if (newEnvName.trim()) {
       const env = createEnvironment(newEnvName.trim())
-      setEditingEnv(env)
+      if (env) {
+        setEditingEnv(env)
+      }
       setIsCreating(false)
       setNewEnvName('')
     }
@@ -90,12 +90,23 @@ export function EnvironmentManager() {
     }
   }
 
+  if (!currentCollection) {
+    return (
+      <div className="p-2 border-gray-700 opacity-50 cursor-not-allowed text-xs" title="Select a request from a collection to manage environments">
+        <div className="w-full text-left px-2 py-1 text-gray-400 flex items-center gap-2">
+          <span>🔧</span>
+          <span>Environments</span>
+        </div>
+      </div>
+    )
+  }
+
   if (!isOpen) {
     return (
-      <div className="p-2 border-t border-gray-700">
+      <div className="p-2 border-gray-700">
         <button
           onClick={() => setIsOpen(true)}
-          className="w-full text-left px-2 py-1 text-sm text-gray-400 hover:text-white flex items-center gap-2"
+          className="w-full text-left px-2 py-1 text-xs text-gray-400 hover:text-white flex items-center gap-2 bg-gray-700 rounded transition-colors"
         >
           <span>🔧</span>
           <span>Environments</span>
@@ -108,13 +119,13 @@ export function EnvironmentManager() {
   }
 
   return (
-    <div ref={containerRef} className="p-2 border-t border-gray-700">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-300">Environments</span>
+    <div ref={containerRef} className="absolute top-12 left-4 z-50 w-80 bg-gray-800 border border-gray-700 rounded shadow-xl p-3">
+      <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
+        <span className="text-sm font-medium text-gray-300">Environments <span className="text-xs text-gray-500">({currentCollection.name})</span></span>
         <button onClick={() => setIsOpen(false)} className="text-gray-500 hover:text-white">×</button>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {!isCreating ? (
           <div className="flex gap-2">
             <select
@@ -132,7 +143,7 @@ export function EnvironmentManager() {
             </select>
             <button
               onClick={() => setIsCreating(true)}
-              className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm text-white"
+              className="px-2 py-1 bg-blue-600 hover:bg-blue-500 transition-colors rounded text-sm text-white"
             >
               +
             </button>
@@ -145,11 +156,12 @@ export function EnvironmentManager() {
               value={newEnvName}
               onChange={(e) => setNewEnvName(e.target.value)}
               placeholder="Environment name..."
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white"
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500"
             />
             <button
               type="submit"
-              className="px-2 py-1 bg-green-700 hover:bg-green-600 rounded text-sm text-white"
+              className="px-2 py-1 bg-green-600 hover:bg-green-500 transition-colors rounded text-sm text-white flex items-center justify-center"
+              title="Save"
             >
               ✓
             </button>
@@ -159,7 +171,8 @@ export function EnvironmentManager() {
                 setIsCreating(false)
                 setNewEnvName('')
               }}
-              className="px-2 py-1 bg-red-700 hover:bg-red-600 rounded text-sm text-white"
+              className="px-2 py-1 bg-red-600 hover:bg-red-500 transition-colors rounded text-sm text-white flex items-center justify-center"
+              title="Cancel"
             >
               ✕
             </button>
@@ -169,48 +182,51 @@ export function EnvironmentManager() {
         {activeEnvironment && !isCreating && (
           <button
             onClick={() => setEditingEnv(activeEnvironment)}
-            className="text-xs text-blue-400 hover:text-blue-300"
+            className="text-xs text-blue-400 hover:text-blue-300 flex items-center mt-1"
           >
-            Edit {activeEnvironment.name}
+            ✏️ Edit "{activeEnvironment.name}"
           </button>
         )}
 
         {editingEnv && (
-          <div className="bg-gray-800 p-2 rounded space-y-2 mt-2">
+          <div className="bg-gray-900 border border-gray-700 p-3 rounded mt-3 shadow-inner">
             <div className="text-sm font-medium text-white mb-2">Edit: {editingEnv.name}</div>
             
-            {editingEnv.variables.map((v, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={v.enabled}
-                  onChange={(e) => handleUpdateVariable(i, { enabled: e.target.checked })}
-                  className="w-4 h-4 rounded"
-                />
-                <input
-                  type="text"
-                  value={v.key}
-                  onChange={(e) => handleUpdateVariable(i, { key: e.target.value })}
-                  placeholder="Key"
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
-                />
-                <input
-                  type="text"
-                  value={v.value}
-                  onChange={(e) => handleUpdateVariable(i, { value: e.target.value })}
-                  placeholder="Value"
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
-                />
-                <button
-                  onClick={() => handleRemoveVariable(i)}
-                  className="text-gray-500 hover:text-red-400 px-1"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
+            <div className="max-h-64 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+              {editingEnv.variables.map((v, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={v.enabled}
+                    onChange={(e) => handleUpdateVariable(i, { enabled: e.target.checked })}
+                    className="w-4 h-4 rounded"
+                    title="Enable/Disable variable"
+                  />
+                  <input
+                    type="text"
+                    value={v.key}
+                    onChange={(e) => handleUpdateVariable(i, { key: e.target.value })}
+                    placeholder="Key"
+                    className="flex-1 w-1/3 bg-gray-800 border border-gray-700 focus:border-blue-500 rounded px-2 py-1 text-xs text-white"
+                  />
+                  <input
+                    type="text"
+                    value={v.value}
+                    onChange={(e) => handleUpdateVariable(i, { value: e.target.value })}
+                    placeholder="Value"
+                    className="flex-1 w-1/2 bg-gray-800 border border-gray-700 focus:border-blue-500 rounded px-2 py-1 text-xs text-white"
+                  />
+                  <button
+                    onClick={() => handleRemoveVariable(i)}
+                    className="text-gray-500 hover:text-red-400 px-1 transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-3 pt-2 border-t border-gray-700">
               <button
                 onClick={handleAddVariable}
                 className="text-xs text-blue-400 hover:text-blue-300"
@@ -231,9 +247,10 @@ export function EnvironmentManager() {
               </button>
               <button
                 onClick={() => handleDelete(editingEnv.id)}
-                className="text-xs text-red-400 hover:text-red-300"
+                className="text-xs text-red-500 hover:text-red-400 ml-1"
+                title="Delete Environment"
               >
-                Delete
+                🗑️
               </button>
             </div>
           </div>

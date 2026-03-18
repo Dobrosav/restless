@@ -55,6 +55,8 @@ export interface Collection {
   name: string
   path: string
   requests: ApiRequest[]
+  environments?: Environment[]
+  activeEnvironmentId?: string
 }
 
 export interface Environment {
@@ -66,5 +68,4 @@ export interface Environment {
 export interface Workspace {
   path: string
   collections: Collection[]
-  environments: Environment[]
 }

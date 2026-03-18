@@ -647,12 +647,56 @@ function buildHeaders(request: any, environment: any): Record<string, string> {
 ipcMain.handle('http:sendRequest', async (_, request: any, environment: any) => {
   try {
     const startTime = performance.now()
-    const url = interpolateEnvVariables(request.url, environment)
+    let url = interpolateEnvVariables(request.url, environment) || ''
+    if (url && !/^https?:\/\//i.test(url)) {
+      url = 'http://' + url
+    }
     
+    const axiosParams: Record<string, string> = {}
+    if (Array.isArray(request.params)) {
+      request.params
+        .filter((p: any) => p.enabled && p.key)
+        .forEach((p: any) => {
+          axiosParams[interpolateEnvVariables(p.key, environment)] = interpolateEnvVariables(p.value, environment)
+        })
+    }
+    
+    if (request.auth?.type === 'api-key' && request.auth?.apiKey?.in === 'query') {
+      axiosParams[interpolateEnvVariables(request.auth.apiKey.key, environment)] = interpolateEnvVariables(request.auth.apiKey.value, environment)
+    }
+
+    let data: any = undefined
+    if (request.body?.type === 'json' && request.body.content) {
+      try {
+        data = JSON.parse(interpolateEnvVariables(request.body.content, environment))
+      } catch (e) {
+        data = interpolateEnvVariables(request.body.content, environment)
+      }
+    } else if (['text'].includes(request.body?.type) && request.body.content) {
+      data = interpolateEnvVariables(request.body.content, environment)
+    } else if (request.body?.type === 'x-www-form-urlencoded' && request.body.content) {
+      const parsedBody = interpolateEnvVariables(request.body.content, environment)
+      try {
+        const obj = JSON.parse(parsedBody)
+        data = new URLSearchParams(obj).toString()
+      } catch (e) {
+        data = parsedBody
+      }
+    } else if (request.body?.type === 'graphql' && request.body.graphql) {
+      const query = interpolateEnvVariables(request.body.graphql.query, environment)
+      let variables = {}
+      try { 
+        variables = JSON.parse(interpolateEnvVariables(request.body.graphql.variables, environment)) 
+      } catch(e) {}
+      data = { query, variables }
+    }
+
     const axiosConfig: any = {
       method: request.method,
       url,
       headers: buildHeaders(request, environment),
+      params: axiosParams,
+      data,
       timeout: 30000,
       validateStatus: () => true,
     }

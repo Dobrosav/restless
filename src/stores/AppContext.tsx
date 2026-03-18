@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 import { Workspace, ApiRequest, ResponseData, HttpMethod, Environment, Collection } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -8,12 +8,13 @@ interface AppState {
   activeTabId: string | null
   response: ResponseData | null
   isLoading: boolean
-  activeEnvironment: Environment | null
-  environments: Environment[]
 }
 
 interface AppContextType extends AppState {
   currentRequest: ApiRequest | null
+  currentCollection: Collection | null
+  activeEnvironment: Environment | null
+  environments: Environment[]
   setWorkspace: (workspace: Workspace | null) => void
   setCurrentRequest: (request: ApiRequest | null) => void
   openTab: (request: ApiRequest) => void
@@ -30,10 +31,9 @@ interface AppContextType extends AppState {
   deleteRequest: (requestId: string) => Promise<boolean>
   createCollection: (name: string) => Promise<string | null>
   deleteCollection: (collectionId: string) => Promise<boolean>
-  createEnvironment: (name: string) => Environment
+  createEnvironment: (name: string) => Environment | null
   updateEnvironment: (env: Environment) => void
   deleteEnvironment: (envId: string) => void
-  setEnvironments: (envs: Environment[]) => void
   refreshWorkspace: () => Promise<void>
 }
 
@@ -56,10 +56,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [tabs, setTabs] = useState<ApiRequest[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const currentRequest = tabs.find(t => t.id === activeTabId) || null
+  const currentCollection = workspace?.collections.find(c => c.requests.some(r => r.id === currentRequest?.id)) || null
+  const environments = currentCollection?.environments || []
+  const activeEnvironment = environments.find(e => e.id === currentCollection?.activeEnvironmentId) || null
+  
   const [response, setResponse] = useState<ResponseData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [activeEnvironment, setActiveEnvironment] = useState<Environment | null>(null)
-  const [environments, setEnvironments] = useState<Environment[]>([])
 
   const refreshWorkspace = async () => {
     if (!workspace) return
@@ -95,61 +97,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
       for (const item of items) {
         if (item.isDirectory && item.name !== '.git') {
           const requests = await loadRequestsRecursively(item.path)
+          
+          let envs: Environment[] = []
+          try {
+            const envPath = `${item.path}/environments.json`
+            if (await window.electronAPI.exists(envPath)) {
+              const content = await window.electronAPI.readFile(envPath)
+              if (content) envs = JSON.parse(content)
+            }
+          } catch (error) {
+            console.error('Failed to load environments for collection', item.name, error)
+          }
+
+          const activeEnvId = localStorage.getItem(`activeEnv_${item.name}`) || undefined
+
           collections.push({
             id: item.name,
             name: item.name,
             path: item.path,
             requests,
+            environments: envs,
+            activeEnvironmentId: activeEnvId
           })
         }
       }
 
-      // 2. Load environments
-      let loadedEnvs: Environment[] = []
-      try {
-        const envPath = `${workspace.path}/environments.json`
-        const exists = await window.electronAPI.exists(envPath)
-        if (exists) {
-          const content = await window.electronAPI.readFile(envPath)
-          if (content) {
-            loadedEnvs = JSON.parse(content)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load environments:', error)
-      }
-
       setWorkspace({
         ...workspace,
-        collections,
-        environments: loadedEnvs
+        collections
       })
-      setEnvironments(loadedEnvs)
-
     } catch (e) {
        console.error("Error refreshing workspace:", e)
     }
   }
 
-  // Watch for workspace changes to load environments
-  useEffect(() => {
-    if (workspace && workspace.environments) {
-      setEnvironments(workspace.environments)
-      
-      // Restore active environment from local storage if available
-      const savedActiveEnvId = localStorage.getItem(`activeEnv_${workspace.path}`)
-      if (savedActiveEnvId) {
-        const env = workspace.environments.find(e => e.id === savedActiveEnvId)
-        if (env) {
-          setActiveEnvironment(env)
-        }
-      }
-    }
-  }, [workspace?.path]) // Only reload when workspace path changes
-
-  const saveEnvironmentsToDisk = async (envs: Environment[]) => {
+  const saveEnvironmentsToDisk = async (collectionId: string, envs: Environment[]) => {
     if (!workspace) return
-    const envPath = `${workspace.path}/environments.json`
+    const collection = workspace.collections.find(c => c.id === collectionId)
+    if (!collection) return
+    
+    const envPath = `${collection.path}/environments.json`
     try {
       await window.electronAPI.writeFile(envPath, JSON.stringify(envs, null, 2))
       // Auto-stage with git add
@@ -293,41 +280,64 @@ export function AppProvider({ children }: { children: ReactNode }) {
      }
    }, [workspace, currentRequest])
 
-  const createEnvironment = useCallback((name: string): Environment => {
+  const createEnvironment = useCallback((name: string): Environment | null => {
+    if (!workspace || !currentCollection) return null
     const env: Environment = {
       id: uuidv4(),
       name,
       variables: [],
     }
-    setEnvironments(prev => {
-      const newEnvs = [...prev, env]
-      saveEnvironmentsToDisk(newEnvs)
-      return newEnvs
+    const newEnvs = [...(currentCollection.environments || []), env]
+    
+    setWorkspace({
+      ...workspace,
+      collections: workspace.collections.map(c => 
+        c.id === currentCollection.id ? { ...c, environments: newEnvs } : c
+      )
     })
+    saveEnvironmentsToDisk(currentCollection.id, newEnvs)
     return env
-  }, [workspace])
+  }, [workspace, currentCollection])
 
   const updateEnvironment = useCallback((env: Environment) => {
-    setEnvironments(prev => {
-      const newEnvs = prev.map(e => e.id === env.id ? env : e)
-      saveEnvironmentsToDisk(newEnvs)
-      return newEnvs
+    if (!workspace || !currentCollection) return
+    const newEnvs = (currentCollection.environments || []).map(e => e.id === env.id ? env : e)
+    
+    setWorkspace({
+      ...workspace,
+      collections: workspace.collections.map(c => 
+        c.id === currentCollection.id ? { ...c, environments: newEnvs } : c
+      )
     })
-    if (activeEnvironment?.id === env.id) {
-      setActiveEnvironment(env)
-    }
-  }, [activeEnvironment, workspace])
+    saveEnvironmentsToDisk(currentCollection.id, newEnvs)
+  }, [workspace, currentCollection])
 
   const deleteEnvironment = useCallback((envId: string) => {
-    setEnvironments(prev => {
-      const newEnvs = prev.filter(e => e.id !== envId)
-      saveEnvironmentsToDisk(newEnvs)
-      return newEnvs
+    if (!workspace || !currentCollection) return
+    const newEnvs = (currentCollection.environments || []).filter(e => e.id !== envId)
+    
+    const isDeletingActive = currentCollection.activeEnvironmentId === envId
+    
+    setWorkspace({
+      ...workspace,
+      collections: workspace.collections.map(c => {
+        if (c.id === currentCollection.id) {
+           return {
+             ...c,
+             environments: newEnvs,
+             activeEnvironmentId: isDeletingActive ? undefined : c.activeEnvironmentId
+           }
+        }
+        return c
+      })
     })
-    if (activeEnvironment?.id === envId) {
-      setActiveEnvironment(null)
+    
+    if (isDeletingActive) {
+      localStorage.removeItem(`activeEnv_${currentCollection.id}`)
     }
-  }, [activeEnvironment, workspace])
+    
+    saveEnvironmentsToDisk(currentCollection.id, newEnvs)
+  }, [workspace, currentCollection])
 
   const deleteRequest = useCallback(async (requestId: string): Promise<boolean> => {
     if (!workspace) return false
@@ -424,6 +434,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           tabs,
           activeTabId,
           currentRequest,
+          currentCollection,
           response,
           isLoading,
           activeEnvironment,
@@ -438,13 +449,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setResponse,
           setIsLoading,
           setActiveEnvironment: (env) => {
-            setActiveEnvironment(env)
-            if (workspace) {
-              if (env) {
-                localStorage.setItem(`activeEnv_${workspace.path}`, env.id)
-              } else {
-                localStorage.removeItem(`activeEnv_${workspace.path}`)
-              }
+            if (!workspace || !currentCollection) return
+            
+            setWorkspace({
+              ...workspace,
+              collections: workspace.collections.map(c => 
+                c.id === currentCollection.id ? { ...c, activeEnvironmentId: env?.id } : c
+              )
+            })
+            
+            if (env) {
+              localStorage.setItem(`activeEnv_${currentCollection.id}`, env.id)
+            } else {
+              localStorage.removeItem(`activeEnv_${currentCollection.id}`)
             }
           },
           createRequest,
@@ -456,7 +473,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createEnvironment,
           updateEnvironment,
           deleteEnvironment,
-          setEnvironments,
           refreshWorkspace,
        }}
     >
