@@ -1,5 +1,6 @@
 import { AppProvider, useApp } from './stores/AppContext'
 import { Sidebar } from './components/Sidebar'
+import { TabsBar } from './components/TabsBar'
 import { RequestPanel } from './components/RequestPanel'
 import { ResponsePanel } from './components/ResponsePanel'
 import { EnvironmentManager } from './components/EnvironmentManager'
@@ -141,6 +142,7 @@ function AppContent() {
             </button>
           </div>
         </div>
+        <TabsBar />
         <div className="flex-1 flex overflow-hidden">
           <RequestPanel />
           <ResponsePanel />

@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 
 interface AppState {
   workspace: Workspace | null
-  currentRequest: ApiRequest | null
+  tabs: ApiRequest[]
+  activeTabId: string | null
   response: ResponseData | null
   isLoading: boolean
   activeEnvironment: Environment | null
@@ -12,14 +13,14 @@ interface AppState {
 }
 
 interface AppContextType extends AppState {
-  workspace: Workspace | null
   currentRequest: ApiRequest | null
-  response: ResponseData | null
-  isLoading: boolean
-  activeEnvironment: Environment | null
-  environments: Environment[]
   setWorkspace: (workspace: Workspace | null) => void
   setCurrentRequest: (request: ApiRequest | null) => void
+  openTab: (request: ApiRequest) => void
+  closeTab: (tabId: string) => void
+  closeOtherTabs: (tabId: string) => void
+  closeAllTabs: () => void
+  setActiveTabId: (tabId: string | null) => void
   setResponse: (response: ResponseData | null) => void
   setIsLoading: (loading: boolean) => void
   setActiveEnvironment: (env: Environment | null) => void
@@ -52,7 +53,9 @@ const AppContext = createContext<AppContextType | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
-  const [currentRequest, setCurrentRequest] = useState<ApiRequest | null>(null)
+  const [tabs, setTabs] = useState<ApiRequest[]>([])
+  const [activeTabId, setActiveTabId] = useState<string | null>(null)
+  const currentRequest = tabs.find(t => t.id === activeTabId) || null
   const [response, setResponse] = useState<ResponseData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [activeEnvironment, setActiveEnvironment] = useState<Environment | null>(null)
@@ -162,15 +165,60 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createRequest = useCallback(() => {
     const req = defaultRequest()
-    setCurrentRequest(req)
+    setTabs(prev => [...prev, req])
+    setActiveTabId(req.id)
     return req
   }, [])
 
   const updateRequest = useCallback((updates: Partial<ApiRequest>) => {
-    if (currentRequest) {
-      setCurrentRequest({ ...currentRequest, ...updates })
+    if (activeTabId) {
+      setTabs(prev => prev.map(t => 
+        t.id === activeTabId ? { ...t, ...updates } : t
+      ))
     }
-  }, [currentRequest])
+  }, [activeTabId])
+
+  const openTab = useCallback((request: ApiRequest) => {
+    setTabs(prev => {
+      if (!prev.find(t => t.id === request.id)) {
+        return [...prev, request]
+      }
+      return prev
+    })
+    setActiveTabId(request.id)
+  }, [])
+
+  const closeTab = useCallback((tabId: string) => {
+    setTabs(prev => {
+      const newTabs = prev.filter(t => t.id !== tabId)
+      if (activeTabId === tabId) {
+        setActiveTabId(newTabs.length > 0 ? newTabs[newTabs.length - 1].id : null)
+      }
+      return newTabs
+    })
+  }, [activeTabId])
+
+  const closeOtherTabs = useCallback((tabId: string) => {
+    setTabs(prev => {
+      const remainingTab = prev.find(t => t.id === tabId)
+      if (!remainingTab) return prev
+      setActiveTabId(tabId)
+      return [remainingTab]
+    })
+  }, [])
+
+  const closeAllTabs = useCallback(() => {
+    setTabs([])
+    setActiveTabId(null)
+  }, [])
+
+  const setCurrentRequest = useCallback((request: ApiRequest | null) => {
+    if (request) {
+      openTab(request)
+    } else {
+      setActiveTabId(null)
+    }
+  }, [openTab])
 
   const createCollection = useCallback(async (name: string): Promise<string | null> => {
     if (!workspace) return null
@@ -324,10 +372,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         collections: updatedCollections,
       })
       
-      // Clear current request if it was deleted
-      if (currentRequest?.id === requestId) {
-        setCurrentRequest(null)
-      }
+      // Close tab if it was deleted
+      closeTab(requestId)
       
       return true
     } catch (error) {
@@ -361,10 +407,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         collections: updatedCollections,
       })
       
-      // Clear current request if it was from deleted collection
-      if (currentRequest && collection.requests.some(r => r.id === currentRequest.id)) {
-        setCurrentRequest(null)
-      }
+      // Clear from tabs if it was from deleted collection
+      collection.requests.forEach(r => closeTab(r.id))
       
       return true
     } catch (error) {
@@ -377,6 +421,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
        value={{
           workspace,
+          tabs,
+          activeTabId,
           currentRequest,
           response,
           isLoading,
@@ -384,6 +430,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           environments,
           setWorkspace,
           setCurrentRequest,
+          openTab,
+          closeTab,
+          closeOtherTabs,
+          closeAllTabs,
+          setActiveTabId,
           setResponse,
           setIsLoading,
           setActiveEnvironment: (env) => {
