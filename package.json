@@ -33,6 +33,7 @@
     "electron": "^40.6.1",
     "electron-builder": "^26.8.1",
     "postcss": "^8.5.6",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
@@ -41,16 +42,21 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "axios": "^1.13.6",
+    "dompurify": "^3.3.3",
     "electron-store": "^11.0.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "simple-git": "^3.32.3",
     "uuid": "^13.0.0"
   },
+  "overrides": {
+    "dompurify": "^3.3.3"
+  },
   "build": {
     "appId": "com.restless.app",
     "productName": "Restless",
     "artifactName": "restless-setup.${ext}",
+    "icon": "./public/logo.ico",
     "publish": [
       {
         "provider": "github",
@@ -66,13 +72,16 @@
       "dist-electron/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "./public/logo.ico"
     },
     "mac": {
-      "target": "dmg"
+      "target": "zip",
+      "icon": "./public/icon-512.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "./public/icon-512.png"
     },
     "nsis": {
       "oneClick": false,

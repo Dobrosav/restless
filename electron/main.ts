@@ -67,7 +67,7 @@ function getWorkspacePath(): string {
 function createWindow() {
   mainWindow = new BrowserWindow({
     title: 'Restless',
-    icon: nativeImage.createFromPath(path.join(app.getAppPath(), isDev ? 'public/logo.png' : 'dist/logo.png')),
+    icon: nativeImage.createFromPath(path.join(__dirname, isDev ? '../public/logo.png' : '../dist/logo.png')),
     width: 1400,
     height: 900,
     minWidth: 900,
