@@ -1,0 +1,70 @@
+name: Build All OS
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and Publish Mac
+        if: matrix.os == 'macos-latest'
+        run: npm run electron:build:mac -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Build and Publish Windows
+        if: matrix.os == 'windows-latest'
+        run: npm run electron:build:win -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Build and Publish Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run electron:build:linux -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Upload Mac Artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Restless-Mac-App
+          path: |
+            release/*.dmg
+            release/*.zip
+
+      - name: Upload Windows Artifact
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Restless-Windows-App
+          path: release/*.exe
+
+      - name: Upload Linux Artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Restless-Linux-App
+          path: |
+            release/*.AppImage
+            release/*.deb
