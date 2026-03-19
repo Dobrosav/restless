@@ -129,15 +129,54 @@ function createWindow() {
 }
 
 function setupAutoUpdater() {
-  autoUpdater.checkForUpdatesAndNotify();
+  autoUpdater.logger = console;
+  autoUpdater.autoDownload = false;
 
-  autoUpdater.on('update-available', () => {
-    console.log('Update available.');
+  autoUpdater.on('checking-for-update', () => {
+    console.log('Checking for update...');
   });
 
-  autoUpdater.on('update-downloaded', () => {
-    autoUpdater.quitAndInstall();
+  autoUpdater.on('update-available', async (info) => {
+    console.log('Update available:', info.version);
+    const response = await dialog.showMessageBox(mainWindow!, {
+      type: 'info',
+      title: 'Update Available',
+      message: `Version ${info.version} is available.`,
+      detail: 'Would you like to download and install the update?',
+      buttons: ['Download & Install', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response.response === 0) {
+      autoUpdater.downloadUpdate();
+    }
   });
+
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('Update not available. Current version is latest:', info.version);
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-updater error:', err);
+  });
+
+  autoUpdater.on('update-downloaded', async (info) => {
+    console.log('Update downloaded:', info.version);
+    const response = await dialog.showMessageBox(mainWindow!, {
+      type: 'info',
+      title: 'Update Ready',
+      message: `Version ${info.version} has been downloaded.`,
+      detail: 'Restart the application to apply the update.',
+      buttons: ['Restart & Update', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+
+  autoUpdater.checkForUpdates();
 }
 
 app.whenReady().then(() => {
