@@ -69,12 +69,12 @@ function createWindow() {
   // Try multiple icon paths - prioritize .ico on Windows
   const possibleIconPaths = isDev
     ? [
-        path.join(__dirname, '../public/logo.ico'),
         path.join(__dirname, '../public/logo.png'),
+        path.join(__dirname, '../public/logo.ico'),
       ]
     : [
-        path.join(process.resourcesPath, 'logo.ico'),
         path.join(process.resourcesPath, 'logo.png'),
+        path.join(process.resourcesPath, 'logo.ico'),
       ]
 
   let appIcon: Electron.NativeImage | undefined
