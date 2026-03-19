@@ -7,7 +7,6 @@ A Postman alternative built with Electron, React, and TypeScript. Features Bruno
 - **HTTP Methods**: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
 - **Request Builder**: Headers, query params, body (JSON, text, form-data, x-www-form-urlencoded)
 - **Authentication**: Basic Auth, Bearer Token, API Key
-- **Monaco Editor**: Syntax highlighting for request body and scripts
 - **Response Viewer**: JSON formatting, headers, timing, size
 - **Bruno Format**: Native .bru file support
 - **Postman Import/Export**: Full compatibility with Postman collections
@@ -22,7 +21,7 @@ A Postman alternative built with Electron, React, and TypeScript. Features Bruno
 
 ```bash
 # Clone the repository
-cd api-client
+cd restless
 
 # Install dependencies
 npm install
