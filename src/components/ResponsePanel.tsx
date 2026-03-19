@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useApp } from '../stores/AppContext'
-import Editor from '@monaco-editor/react'
 
 export function ResponsePanel() {
   const { response, setResponse, isLoading } = useApp()
@@ -92,47 +91,37 @@ export function ResponsePanel() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {activeTab === 'body' && (
-          <Editor
-            height="100%"
-            defaultLanguage="json"
-            value={response.body}
-            theme="vs-dark"
-            options={{
-              readOnly: true,
-              minimap: { enabled: false },
-              fontSize: 12,
-              lineNumbers: 'on',
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-            }}
-          />
-        )}
-
-        {activeTab === 'headers' && (
-          <div className="p-3 overflow-y-auto h-full">
-            <table className="w-full text-sm">
-              <tbody>
-                {Object.entries(response.headers).map(([key, value]) => (
-                  <tr key={key} className="border-b border-gray-700">
-                    <td className="py-1 text-blue-400 font-mono text-xs w-1/3">{key}</td>
-                    <td className="py-1 text-gray-300 text-xs break-all">{value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Body tab */}
+        <div style={{ display: activeTab === 'body' ? 'flex' : 'none' }} className="h-full flex-col">
+          <div className="h-full overflow-auto p-3">
+            <pre className="text-gray-300 text-xs font-mono whitespace-pre-wrap break-all">
+              {response.body}
+            </pre>
           </div>
-        )}
+        </div>
 
-        {activeTab === 'cookies' && (
-          <div className="p-3 text-gray-500 text-sm">
-            {response.headers['set-cookie'] ? (
-              <pre className="text-xs">{response.headers['set-cookie']}</pre>
-            ) : (
-              'No cookies in response'
-            )}
-          </div>
-        )}
+        {/* Headers tab */}
+        <div style={{ display: activeTab === 'headers' ? 'block' : 'none' }} className="p-3 overflow-y-auto h-full">
+          <table className="w-full text-sm">
+            <tbody>
+              {Object.entries(response.headers).map(([key, value]) => (
+                <tr key={key} className="border-b border-gray-700">
+                  <td className="py-1 text-blue-400 font-mono text-xs w-1/3">{key}</td>
+                  <td className="py-1 text-gray-300 text-xs break-all">{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Cookies tab */}
+        <div style={{ display: activeTab === 'cookies' ? 'block' : 'none' }} className="p-3 text-gray-500 text-sm h-full overflow-auto">
+          {response.headers['set-cookie'] ? (
+            <pre className="text-xs">{response.headers['set-cookie']}</pre>
+          ) : (
+            'No cookies in response'
+          )}
+        </div>
       </div>
     </div>
   )
