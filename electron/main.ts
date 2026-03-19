@@ -65,9 +65,34 @@ function getWorkspacePath(): string {
 }
 
 function createWindow() {
+  // Try multiple icon paths - prioritize .ico on Windows
+  const possibleIconPaths = isDev
+    ? [
+        path.join(__dirname, '../public/logo.ico'),
+        path.join(__dirname, '../public/logo.png'),
+      ]
+    : [
+        path.join(process.resourcesPath, 'logo.ico'),
+        path.join(process.resourcesPath, 'logo.png'),
+      ]
+
+  let appIcon: Electron.NativeImage | undefined
+  for (const iconPath of possibleIconPaths) {
+    if (fs.existsSync(iconPath)) {
+      try {
+        appIcon = nativeImage.createFromPath(iconPath)
+        if (!appIcon.isEmpty()) {
+          break
+        }
+      } catch (error) {
+        console.error('Error loading icon:', error)
+      }
+    }
+  }
+
   mainWindow = new BrowserWindow({
     title: 'Restless',
-    icon: nativeImage.createFromPath(path.join(__dirname, isDev ? '../public/logo.png' : '../dist/logo.png')),
+    icon: appIcon,
     width: 1400,
     height: 900,
     minWidth: 900,
@@ -79,6 +104,10 @@ function createWindow() {
     },
     show: false,
   })
+
+  if (appIcon && !appIcon.isEmpty()) {
+    mainWindow.setIcon(appIcon)
+  }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()

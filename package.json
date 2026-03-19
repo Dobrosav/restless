@@ -57,6 +57,19 @@
     "productName": "Restless",
     "artifactName": "restless-setup.${ext}",
     "icon": "./public/logo.ico",
+    "extraResources": [
+      {
+        "from": "public/logo.png",
+        "to": "logo.png"
+      },
+      {
+        "from": "public/logo.ico",
+        "to": "logo.ico"
+      }
+    ],
+    "asarUnpack": [
+      "dist/logo.png"
+    ],
     "publish": [
       {
         "provider": "github",

@@ -141,7 +141,7 @@ export function Sidebar() {
     <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
       <div className="p-3 border-b border-gray-700">
         <div className="flex items-center justify-between">
-          <img src="/logo.png" alt="Restless" className="h-[98px] -ml-3 w-auto object-contain" />
+          <img src="./logo.png" alt="Restless" className="h-[98px] -ml-3 w-auto object-contain" />
           <div className="flex gap-1">
             <button
               onClick={handleImport}
