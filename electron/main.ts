@@ -4,6 +4,7 @@ import fs from 'fs'
 import { randomUUID } from 'crypto'
 import simpleGit, { SimpleGit } from 'simple-git'
 import axios from 'axios'
+import { autoUpdater } from 'electron-updater'
 
 interface Config {
   gitUserName: string
@@ -127,6 +128,18 @@ function createWindow() {
   })
 }
 
+function setupAutoUpdater() {
+  autoUpdater.checkForUpdatesAndNotify();
+
+  autoUpdater.on('update-available', () => {
+    console.log('Update available.');
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    autoUpdater.quitAndInstall();
+  });
+}
+
 app.whenReady().then(() => {
   createWindow()
 
@@ -135,6 +148,7 @@ app.whenReady().then(() => {
       createWindow()
     }
   })
+  setupAutoUpdater();
 })
 
 app.on('window-all-closed', () => {

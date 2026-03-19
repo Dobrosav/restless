@@ -19,7 +19,10 @@
     "postman",
     "electron"
   ],
-  "author": "",
+  "author": {
+    "name": "Dobrosav Vlaskovic",
+    "email": "vlaskovic.dodo@gmail.com"
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/conf": "^2.1.0",
@@ -44,6 +47,7 @@
     "axios": "^1.13.6",
     "dompurify": "^3.3.3",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "simple-git": "^3.32.3",
@@ -93,8 +97,20 @@
       "icon": "./public/icon-512.png"
     },
     "linux": {
-      "target": "AppImage",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
       "icon": "./public/icon-512.png"
+    },
+    "deb": {
+      "priority": "optional",
+      "depends": [
+        "libnotify4",
+        "libxtst6",
+        "libnss3"
+      ]
     },
     "nsis": {
       "oneClick": false,
