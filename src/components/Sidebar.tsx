@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useApp } from '../stores/AppContext'
+import { parseCurl } from '../lib/curlImport'
 
 function RequestItem({ request, isActive, onClick, onDelete }: { request: any; isActive: boolean; onClick: () => void; onDelete: () => void }) {
   const methodColors: Record<string, string> = {
@@ -38,11 +39,16 @@ function RequestItem({ request, isActive, onClick, onDelete }: { request: any; i
 }
 
 export function Sidebar() {
-  const { workspace, currentRequest, setCurrentRequest, createRequest, setWorkspace, createCollection, deleteRequest, deleteCollection } = useApp()
+  const { workspace, currentRequest, setCurrentRequest, createRequest, setWorkspace, createCollection, deleteRequest, deleteCollection, openTab } = useApp()
   const [collectionsOpen, setCollectionsOpen] = useState(true)
   const [showNewCollection, setShowNewCollection] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
   const [expandedCollections, setExpandedCollections] = useState<Record<string, boolean>>({})
+  const [showImportDropdown, setShowImportDropdown] = useState(false)
+  const [showImportCurlModal, setShowImportCurlModal] = useState(false)
+  const [curlInput, setCurlInput] = useState('')
+  const [curlError, setCurlError] = useState('')
+  const dropdownTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleImport = async () => {
     if (!workspace) {
@@ -114,6 +120,37 @@ export function Sidebar() {
     input.click()
   }
 
+  const handleImportCurl = () => {
+    const trimmed = curlInput.trim()
+    if (!trimmed) {
+      setCurlError('Please paste a curl command.')
+      return
+    }
+    try {
+      const parsed = parseCurl(trimmed)
+      // Build a complete request upfront and open it as a new tab.
+      // Using openTab avoids the state-batching race that would occur
+      // if we called createRequest() then updateRequest() in the same tick.
+      const newRequest: import('../types').ApiRequest = {
+        id: crypto.randomUUID(),
+        name: parsed.url ? `Imported: ${parsed.method || 'GET'} ${parsed.url}` : 'Imported Request',
+        method: parsed.method || 'GET',
+        url: parsed.url || '',
+        params: parsed.params || [],
+        headers: parsed.headers || [],
+        body: parsed.body || { type: 'none', content: '' },
+        auth: parsed.auth || { type: 'none' },
+        script: { pre: '', post: '' },
+      }
+      openTab(newRequest)
+      setShowImportCurlModal(false)
+      setCurlInput('')
+      setCurlError('')
+    } catch (err) {
+      setCurlError('Failed to parse curl command. Please check the syntax.')
+    }
+  }
+
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim()) return
     
@@ -143,13 +180,39 @@ export function Sidebar() {
         <div className="flex items-center justify-between">
           <img src="./logo.png" alt="Restless" className="h-[98px] -ml-3 w-auto object-contain" />
           <div className="flex gap-1">
-            <button
-              onClick={handleImport}
-              className="text-xs bg-gray-600 px-2 py-1 rounded hover:bg-gray-700 transition-colors"
-              title="Import Postman Collection"
+            {/* Import button with hover dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                if (dropdownTimeout.current) clearTimeout(dropdownTimeout.current)
+                setShowImportDropdown(true)
+              }}
+              onMouseLeave={() => {
+                dropdownTimeout.current = setTimeout(() => setShowImportDropdown(false), 150)
+              }}
             >
-              Import
-            </button>
+              <button
+                className="text-xs bg-gray-600 px-2 py-1 rounded hover:bg-gray-500 transition-colors"
+              >
+                Import ▾
+              </button>
+              {showImportDropdown && (
+                <div className="absolute top-full left-0 mt-1 w-36 bg-gray-700 border border-gray-600 rounded shadow-lg z-50">
+                  <button
+                    onClick={() => { setShowImportDropdown(false); handleImport() }}
+                    className="w-full text-left text-xs px-3 py-2 hover:bg-gray-600 text-gray-200 rounded-t"
+                  >
+                    📁 Kolekcija
+                  </button>
+                  <button
+                    onClick={() => { setShowImportDropdown(false); setCurlInput(''); setCurlError(''); setShowImportCurlModal(true) }}
+                    className="w-full text-left text-xs px-3 py-2 hover:bg-gray-600 text-gray-200 rounded-b"
+                  >
+                    ⌨ cURL
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               onClick={createRequest}
               className="text-xs bg-blue-600 px-2 py-1 rounded hover:bg-blue-700 transition-colors"
@@ -273,6 +336,52 @@ export function Sidebar() {
       <div className="p-2 border-t border-gray-700">
         <div className="text-xs text-gray-500">Press Enter to send request</div>
       </div>
+
+      {/* cURL Import Modal */}
+      {showImportCurlModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-4 rounded-lg w-[520px] max-w-full mx-4 shadow-xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white font-medium">Import cURL</h3>
+              <button
+                onClick={() => setShowImportCurlModal(false)}
+                className="text-gray-400 hover:text-gray-200 text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-2">Nalepite curl komandu ispod:</p>
+            <textarea
+              value={curlInput}
+              onChange={(e) => { setCurlInput(e.target.value); setCurlError('') }}
+              placeholder={`curl -X POST 'https://api.example.com/items' -H 'Content-Type: application/json' -d '{"key":"value"}'`}
+              className="w-full h-40 bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-gray-200 font-mono resize-none focus:outline-none focus:border-blue-500"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setShowImportCurlModal(false)
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleImportCurl()
+              }}
+            />
+            {curlError && (
+              <p className="text-red-400 text-xs mt-1">{curlError}</p>
+            )}
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleImportCurl}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium"
+              >
+                Import
+              </button>
+              <button
+                onClick={() => setShowImportCurlModal(false)}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm"
+              >
+                Otkaži
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
