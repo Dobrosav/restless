@@ -15,7 +15,7 @@ export function ResponsePanel() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading && !response) {
     return (
       <div className="w-1/2 flex items-center justify-center">
         <div className="text-gray-400">Sending request...</div>
