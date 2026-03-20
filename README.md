@@ -7,9 +7,10 @@ A Postman alternative built with Electron, React, and TypeScript. Features Bruno
 - **HTTP Methods**: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
 - **Request Builder**: Headers, query params, body (JSON, text, form-data, x-www-form-urlencoded)
 - **Authentication**: Basic Auth, Bearer Token, API Key
-- **Response Viewer**: JSON formatting, headers, timing, size
+- **Response Viewer**: JSON formatting, headers, timing, size, syntax highlighting
 - **Bruno Format**: Native .bru file support
 - **Postman Import/Export**: Full compatibility with Postman collections
+- **Non-blocking Requests**: Background HTTP execution with cancel support
 - **Multi-platform**: Windows, macOS, Linux
 
 ## Prerequisites
@@ -143,3 +144,13 @@ api-client/
 ## License
 
 MIT
+
+---
+
+If any company or individual starts using this project, feel free to open a PR to add your name to the users list.
+
+I'm open to donations. Contact: [dobrosav.github.io](https://dobrosav.github.io)
+
+## Users
+
+*Add your name here via PR!*
