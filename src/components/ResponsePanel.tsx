@@ -1,5 +1,28 @@
 import { useState, useMemo, memo } from 'react'
 import { useApp } from '../stores/AppContext'
+import { PrismLight } from 'react-syntax-highlighter'
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
+import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript'
+import css from 'react-syntax-highlighter/dist/esm/languages/prism/css'
+import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash'
+import python from 'react-syntax-highlighter/dist/esm/languages/prism/python'
+import sql from 'react-syntax-highlighter/dist/esm/languages/prism/sql'
+import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+PrismLight.registerLanguage('json', json)
+PrismLight.registerLanguage('markup', markup)
+PrismLight.registerLanguage('html', markup)
+PrismLight.registerLanguage('xml', markup)
+PrismLight.registerLanguage('javascript', javascript)
+PrismLight.registerLanguage('js', javascript)
+PrismLight.registerLanguage('css', css)
+PrismLight.registerLanguage('bash', bash)
+PrismLight.registerLanguage('shell', bash)
+PrismLight.registerLanguage('python', python)
+PrismLight.registerLanguage('sql', sql)
+PrismLight.registerLanguage('yaml', yaml)
 
 interface ResponsePanelProps {
   tabId: string | null
@@ -7,16 +30,54 @@ interface ResponsePanelProps {
 
 const TRUNCATE_LENGTH = 10000
 
+function detectLanguage(body: string): string {
+  const trimmed = body.trim()
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      JSON.parse(trimmed)
+      return 'json'
+    } catch {}
+  }
+  if (trimmed.startsWith('<')) {
+    if (trimmed.startsWith('<!DOCTYPE html') || trimmed.startsWith('<html')) {
+      return 'html'
+    }
+    if (trimmed.startsWith('<?xml')) {
+      return 'xml'
+    }
+    return 'xml'
+  }
+  if (trimmed.includes(':') && trimmed.includes('\n') && !trimmed.includes('{')) return 'yaml'
+  return 'text'
+}
+
 const BodyTab = memo(({ body, onShowAll }: { body: string; onShowAll: () => void }) => {
   const isTruncated = body.length > TRUNCATE_LENGTH
   const displayBody = isTruncated ? body.slice(0, TRUNCATE_LENGTH) : body
+  const language = useMemo(() => detectLanguage(displayBody), [displayBody])
   
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-auto p-3">
-        <pre className="text-gray-300 text-xs font-mono whitespace-pre-wrap break-all">
+      <div className="flex-1 overflow-auto p-3 bg-[#1e1e1e]">
+        <PrismLight
+          language={language}
+          style={vscDarkPlus}
+          customStyle={{
+            margin: 0,
+            padding: '8px',
+            background: 'transparent',
+            fontSize: '12px',
+            lineHeight: '1.4',
+          }}
+          codeTagProps={{
+            style: {
+              fontFamily: 'Menlo, Monaco, Consolas, monospace',
+            }
+          }}
+          wrapLongLines={true}
+        >
           {displayBody}
-        </pre>
+        </PrismLight>
       </div>
       {isTruncated && (
         <div className="p-2 border-t border-gray-700 bg-gray-800 flex items-center justify-between">
@@ -36,12 +97,30 @@ const BodyTab = memo(({ body, onShowAll }: { body: string; onShowAll: () => void
 })
 
 const BodyTabFull = memo(({ body, onCollapse }: { body: string; onCollapse: () => void }) => {
+  const language = useMemo(() => detectLanguage(body), [body])
+  
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-auto p-3">
-        <pre className="text-gray-300 text-xs font-mono whitespace-pre-wrap break-all">
+      <div className="flex-1 overflow-auto p-3 bg-[#1e1e1e]">
+        <PrismLight
+          language={language}
+          style={vscDarkPlus}
+          customStyle={{
+            margin: 0,
+            padding: '8px',
+            background: 'transparent',
+            fontSize: '12px',
+            lineHeight: '1.4',
+          }}
+          codeTagProps={{
+            style: {
+              fontFamily: 'Menlo, Monaco, Consolas, monospace',
+            }
+          }}
+          wrapLongLines={true}
+        >
           {body}
-        </pre>
+        </PrismLight>
       </div>
       <div className="p-2 border-t border-gray-700 bg-gray-800">
         <button

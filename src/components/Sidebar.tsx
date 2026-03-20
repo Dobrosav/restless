@@ -202,7 +202,7 @@ export function Sidebar() {
                     onClick={() => { setShowImportDropdown(false); handleImport() }}
                     className="w-full text-left text-xs px-3 py-2 hover:bg-gray-600 text-gray-200 rounded-t"
                   >
-                    Kolekcija
+                    Collection
                   </button>
                   <button
                     onClick={() => { setShowImportDropdown(false); setCurlInput(''); setCurlError(''); setShowImportCurlModal(true) }}
