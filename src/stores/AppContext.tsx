@@ -6,8 +6,8 @@ interface AppState {
   workspace: Workspace | null
   tabs: ApiRequest[]
   activeTabId: string | null
-  response: ResponseData | null
-  isLoading: boolean
+  tabResponses: Record<string, ResponseData | null>
+  tabLoadingStates: Record<string, boolean>
 }
 
 interface AppContextType extends AppState {
@@ -15,6 +15,7 @@ interface AppContextType extends AppState {
   currentCollection: Collection | null
   activeEnvironment: Environment | null
   environments: Environment[]
+  isLoading: boolean
   setWorkspace: (workspace: Workspace | null) => void
   setCurrentRequest: (request: ApiRequest | null) => void
   openTab: (request: ApiRequest) => void
@@ -22,8 +23,10 @@ interface AppContextType extends AppState {
   closeOtherTabs: (tabId: string) => void
   closeAllTabs: () => void
   setActiveTabId: (tabId: string | null) => void
-  setResponse: (response: ResponseData | null) => void
-  setIsLoading: (loading: boolean) => void
+  setTabResponse: (tabId: string, response: ResponseData | null) => void
+  clearTabResponse: (tabId: string) => void
+  setTabLoading: (tabId: string, loading: boolean) => void
+  cancelRequest: (tabId: string) => void
   setActiveEnvironment: (env: Environment | null) => void
   createRequest: () => ApiRequest
   updateRequest: (request: Partial<ApiRequest>) => void
@@ -60,8 +63,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const environments = currentCollection?.environments || []
   const activeEnvironment = environments.find(e => e.id === currentCollection?.activeEnvironmentId) || null
   
-  const [response, setResponse] = useState<ResponseData | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [tabResponses, setTabResponses] = useState<Record<string, ResponseData | null>>({})
+  const [tabLoadingStates, setTabLoadingStates] = useState<Record<string, boolean>>({})
+
+  const isLoading = activeTabId ? (tabLoadingStates[activeTabId] || false) : false
+
+  const setTabLoading = useCallback((tabId: string, loading: boolean) => {
+    setTabLoadingStates(prev => ({ ...prev, [tabId]: loading }))
+  }, [])
+
+  const cancelRequest = useCallback(async (tabId: string) => {
+    setTabLoadingStates(prev => ({ ...prev, [tabId]: false }))
+  }, [])
 
   const refreshWorkspace = async () => {
     if (!workspace) return
@@ -131,6 +144,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const setTabResponse = useCallback((tabId: string, response: ResponseData | null) => {
+    setTabResponses(prev => ({ ...prev, [tabId]: response }))
+  }, [])
+
+  const clearTabResponse = useCallback((tabId: string) => {
+    setTabResponses(prev => {
+      const newResponses = { ...prev }
+      delete newResponses[tabId]
+      return newResponses
+    })
+  }, [])
+
   const saveEnvironmentsToDisk = async (collectionId: string, envs: Environment[]) => {
     if (!workspace) return
     const collection = workspace.collections.find(c => c.id === collectionId)
@@ -183,7 +208,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return newTabs
     })
-  }, [activeTabId])
+    clearTabResponse(tabId)
+  }, [activeTabId, clearTabResponse])
 
   const closeOtherTabs = useCallback((tabId: string) => {
     setTabs(prev => {
@@ -433,9 +459,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           workspace,
           tabs,
           activeTabId,
+          tabResponses,
+          tabLoadingStates,
           currentRequest,
           currentCollection,
-          response,
           isLoading,
           activeEnvironment,
           environments,
@@ -446,8 +473,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           closeOtherTabs,
           closeAllTabs,
           setActiveTabId,
-          setResponse,
-          setIsLoading,
+          setTabResponse,
+          clearTabResponse,
+          setTabLoading,
+          cancelRequest,
           setActiveEnvironment: (env) => {
             if (!workspace || !currentCollection) return
             

@@ -58,6 +58,8 @@ export interface ElectronAPI {
   gitCheckout: (branchName: string) => Promise<{ success: boolean; error?: string }>
   gitCreateBranch: (branchName: string) => Promise<{ success: boolean; error?: string }>
   postmanImport: (collectionPath: string, postmanJson: string) => Promise<PostmanImportResult>
+  httpSendRequest: (request: any, environment: any) => Promise<any>
+  httpCancelRequest: () => Promise<void>
 }
 
 declare global {

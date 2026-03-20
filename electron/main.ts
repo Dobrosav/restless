@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, nativeImage, Menu } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { randomUUID } from 'crypto'
@@ -66,6 +66,8 @@ function getWorkspacePath(): string {
 }
 
 function createWindow() {
+  Menu.setApplicationMenu(null)
+  
   // Try multiple icon paths - prioritize .ico on Windows
   const possibleIconPaths = isDev
     ? [
@@ -726,7 +728,13 @@ function buildHeaders(request: any, environment: any): Record<string, string> {
   return headers
 }
 
-ipcMain.handle('http:sendRequest', async (_, request: any, environment: any) => {
+const httpAbortControllers = new Map<number, AbortController>();
+
+ipcMain.handle('http:sendRequest', async (event, request: any, environment: any) => {
+  const requestId = Date.now();
+  const abortController = new AbortController();
+  httpAbortControllers.set(requestId, abortController);
+
   try {
     const startTime = performance.now()
     let url = interpolateEnvVariables(request.url, environment) || ''
@@ -781,10 +789,12 @@ ipcMain.handle('http:sendRequest', async (_, request: any, environment: any) => 
       data,
       timeout: 30000,
       validateStatus: () => true,
+      signal: abortController.signal,
     }
     
     const axiosResponse = await axios(axiosConfig)
     const endTime = performance.now()
+    httpAbortControllers.delete(requestId)
     
     const responseHeaders: Record<string, string> = {}
     Object.entries(axiosResponse.headers).forEach(([key, value]) => {
@@ -812,6 +822,19 @@ ipcMain.handle('http:sendRequest', async (_, request: any, environment: any) => 
       type: 'http',
     }
   } catch (error: any) {
+    httpAbortControllers.delete(requestId)
+    if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+      return {
+        status: 0,
+        statusText: 'Cancelled',
+        headers: {},
+        body: 'Request cancelled by user',
+        time: 0,
+        size: 0,
+        type: 'http',
+        cancelled: true,
+      }
+    }
     const endTime = performance.now()
     console.error('HTTP request error:', error)
     return {
@@ -824,4 +847,11 @@ ipcMain.handle('http:sendRequest', async (_, request: any, environment: any) => 
       type: 'http',
     }
   }
+})
+
+ipcMain.handle('http:cancelRequest', async () => {
+  httpAbortControllers.forEach((controller) => {
+    controller.abort()
+  })
+  httpAbortControllers.clear()
 })

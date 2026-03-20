@@ -54,4 +54,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitCreateBranch: (branchName: string) => ipcRenderer.invoke('git:createBranch', branchName) as Promise<{ success: boolean; error?: string }>,
   postmanImport: (collectionPath: string, postmanJson: string) => ipcRenderer.invoke('postman:import', collectionPath, postmanJson) as Promise<{ success: boolean; collectionDir?: string; collectionName?: string; error?: string }>,
   httpSendRequest: (request: any, environment: any) => ipcRenderer.invoke('http:sendRequest', request, environment) as Promise<any>,
+  httpCancelRequest: () => ipcRenderer.invoke('http:cancelRequest') as Promise<void>,
 })
