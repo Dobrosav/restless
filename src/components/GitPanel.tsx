@@ -217,16 +217,18 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
 
     return (
       <div className="p-2 border-t border-gray-700 relative" ref={panelRef}>
-       <button
-         onClick={() => setIsOpen(!isOpen)}
-         className="w-full text-left px-2 py-1 text-sm text-gray-400 hover:text-white flex items-center gap-2"
-       >
-         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500 flex-shrink-0">
-           <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
-         </svg>
-         <span>Git</span>
-         {hasChanges && <span className="ml-auto text-yellow-400">●</span>}
-       </button>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full text-left px-2 py-1 text-sm text-gray-400 hover:text-white flex items-center gap-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500 flex-shrink-0">
+            <circle cx="18" cy="18" r="3"/>
+            <circle cx="6" cy="6" r="3"/>
+            <path d="M6 21V9a9 9 0 0 0 9 9"/>
+          </svg>
+          <span>Git</span>
+          {hasChanges && <span className="ml-auto text-yellow-400">●</span>}
+        </button>
 
        {isOpen && (
          <div className="mt-2 p-2 bg-gray-800 rounded space-y-2 absolute z-50 min-w-48 shadow-lg border border-gray-600">

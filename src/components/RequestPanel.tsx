@@ -3,6 +3,9 @@ import { useApp } from '../stores/AppContext'
 import { HttpMethod, KeyValue } from '../types'
 import Editor from '@monaco-editor/react'
 import { generateCurl } from '../lib/curlExport'
+import { createHttpClient } from '../lib/httpWorkerClient'
+
+const httpClient = createHttpClient()
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'WS', 'GRAPHQL']
 
@@ -82,15 +85,15 @@ function KeyValueEditor({ items, onChange, placeholder = 'Key' }: KeyValueEditor
 }
 
 export function RequestPanel() {
-  const { currentRequest, updateRequest, setResponse, setIsLoading, createRequest, activeEnvironment, workspace, saveRequest, createCollection, response } = useApp()
+  const { currentRequest, updateRequest, setTabResponse, clearTabResponse, setTabLoading, cancelRequest, createRequest, activeEnvironment, workspace, saveRequest, createCollection, tabResponses, activeTabId, isLoading } = useApp()
   const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'script'>('params')
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
   const [showNewCollectionInput, setShowNewCollectionInput] = useState(false)
   const [showCurlModal, setShowCurlModal] = useState(false)
   const urlInputRef = useRef<HTMLInputElement>(null)
-  const responseRef = useRef(response)
-  responseRef.current = response
+  const responseRef = useRef(tabResponses[activeTabId || ''] || null)
+  responseRef.current = activeTabId ? tabResponses[activeTabId] || null : null
   const clearRequest = useCallback(() => {
     updateRequest({ 
       url: '', 
@@ -99,8 +102,8 @@ export function RequestPanel() {
       body: { type: 'none', content: '' }, 
       auth: { type: 'none' } 
     })
-    setResponse(null)
-  }, [updateRequest, setResponse])
+    if (activeTabId) clearTabResponse(activeTabId)
+  }, [updateRequest, activeTabId, clearTabResponse])
 
   const handleSendRef = useRef<(() => Promise<void>) | null>(null)
 
@@ -190,25 +193,22 @@ export function RequestPanel() {
 
   const handleSend = async () => {
     if (!currentRequest.url && currentRequest.method !== 'WS') return
+    if (!activeTabId) return
     
-    setIsLoading(true)
-    setResponse(null)
+    setTabLoading(activeTabId, true)
+    clearTabResponse(activeTabId)
     
     try {
-      // Check if we're in Electron environment
       const electronAPI = (window as any).electronAPI
       if (electronAPI && electronAPI.httpSendRequest) {
-        // Use IPC to send request through main process
         const response = await electronAPI.httpSendRequest(currentRequest, activeEnvironment)
-        setResponse(response)
+        setTabResponse(activeTabId, response)
       } else {
-        // Fallback to direct axios for development
-        const { sendRequest } = await import('../lib/httpClient')
-        const response = await sendRequest(currentRequest, activeEnvironment)
-        setResponse(response)
+        const response = await httpClient.sendRequest(currentRequest, activeEnvironment)
+        setTabResponse(activeTabId, response)
       }
     } catch (error: any) {
-      setResponse({
+      setTabResponse(activeTabId, {
         status: 0,
         statusText: 'Error',
         headers: {},
@@ -218,10 +218,21 @@ export function RequestPanel() {
         type: 'http',
       })
     } finally {
-      setIsLoading(false)
+      setTabLoading(activeTabId, false)
     }
   }
   handleSendRef.current = handleSend
+
+  const handleCancel = () => {
+    if (activeTabId) {
+      const electronAPI = (window as any).electronAPI
+      if (electronAPI && electronAPI.httpCancelRequest) {
+        electronAPI.httpCancelRequest()
+      }
+      httpClient.cancelRequest()
+      cancelRequest(activeTabId)
+    }
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -264,12 +275,21 @@ export function RequestPanel() {
         >
           Save
         </button>
-        <button
-          onClick={handleSend}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-medium"
-        >
-          Send
-        </button>
+        {isLoading ? (
+          <button
+            onClick={handleCancel}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded font-medium"
+          >
+            Cancel
+          </button>
+        ) : (
+          <button
+            onClick={handleSend}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-medium"
+          >
+            Send
+          </button>
+        )}
         <button
           onClick={() => setShowCurlModal(true)}
           className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded font-medium"

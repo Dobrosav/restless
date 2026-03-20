@@ -202,7 +202,7 @@ export function Sidebar() {
                     onClick={() => { setShowImportDropdown(false); handleImport() }}
                     className="w-full text-left text-xs px-3 py-2 hover:bg-gray-600 text-gray-200 rounded-t"
                   >
-                    📁 Kolekcija
+                    Collection
                   </button>
                   <button
                     onClick={() => { setShowImportDropdown(false); setCurlInput(''); setCurlError(''); setShowImportCurlModal(true) }}
@@ -223,7 +223,7 @@ export function Sidebar() {
         </div>
         {workspace && (
           <div className="mt-2 text-xs text-gray-400 truncate" title={workspace.path}>
-            📁 {workspace.path.split(/[\\/]/).pop()}
+            {workspace.path.split(/[\\/]/).pop()}
           </div>
         )}
       </div>
@@ -286,10 +286,7 @@ export function Sidebar() {
                         className="flex items-center flex-1 text-left text-sm text-gray-300 hover:text-white hover:bg-gray-700 p-1 rounded transition-colors"
                       >
                         <span className="mr-1 text-xs">{isCollectionExpanded(collection.id) ? '▼' : '▶'}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500 mx-1 flex-shrink-0">
-                          <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
-                        </svg>
-                        <span className="ml-1 truncate">{collection.name}</span>
+                        <span className="truncate">{collection.name}</span>
                       </button>
                       <button
                         onClick={() => {

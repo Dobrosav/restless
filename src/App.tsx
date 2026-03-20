@@ -10,7 +10,7 @@ import { Collection, Environment } from './types'
 import { useEffect, useState } from 'react'
 
 function AppContent() {
-  const { workspace, setWorkspace, isLoading } = useApp()
+  const { workspace, setWorkspace, isLoading, activeTabId } = useApp()
   const [showGitConfigDialog, setShowGitConfigDialog] = useState(false)
 
   const loadCollections = async (dirPath: string): Promise<Collection[]> => {
@@ -142,7 +142,7 @@ function AppContent() {
         <TabsBar />
         <div className="flex-1 flex overflow-hidden">
           <RequestPanel />
-          <ResponsePanel />
+          <ResponsePanel tabId={activeTabId} />
         </div>
       </div>
       <GitConfigDialog 
