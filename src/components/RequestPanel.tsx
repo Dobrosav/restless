@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useApp } from '../stores/AppContext'
 import { HttpMethod, KeyValue } from '../types'
-import Editor from '@monaco-editor/react'
+import { PrismLight } from 'react-syntax-highlighter'
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript'
+import graphql from 'react-syntax-highlighter/dist/esm/languages/prism/graphql'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { generateCurl } from '../lib/curlExport'
 import { createHttpClient } from '../lib/httpWorkerClient'
+
+PrismLight.registerLanguage('json', json)
+PrismLight.registerLanguage('javascript', javascript)
+PrismLight.registerLanguage('graphql', graphql)
 
 const httpClient = createHttpClient()
 
@@ -355,50 +363,53 @@ export function RequestPanel() {
               <div className="space-y-2">
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Query</label>
-                  <Editor
-                    height="150px"
-                    defaultLanguage="graphql"
+                  <textarea
+                    className="w-full h-32 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                     value={currentRequest.body.graphql?.query || ''}
-                    onChange={(value) => updateRequest({ body: { ...currentRequest.body, graphql: { query: value || '', variables: currentRequest.body.graphql?.variables || '{}' } } })}
-                    theme="vs-dark"
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 12,
-                      lineNumbers: 'off',
-                    }}
+                    onChange={(e) => updateRequest({ body: { ...currentRequest.body, graphql: { query: e.target.value, variables: currentRequest.body.graphql?.variables || '{}' } } })}
+                    spellCheck={false}
                   />
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Variables</label>
-                  <Editor
-                    height="80px"
-                    defaultLanguage="json"
-                    value={currentRequest.body.graphql?.variables || '{}'}
-                    onChange={(value) => updateRequest({ body: { ...currentRequest.body, graphql: { query: currentRequest.body.graphql?.query || '', variables: value || '{}' } } })}
-                    theme="vs-dark"
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 12,
-                      lineNumbers: 'off',
-                    }}
-                  />
+                  <div className="bg-[#1e1e1e] rounded border border-gray-600 overflow-hidden">
+                    <PrismLight
+                      language="json"
+                      style={vscDarkPlus}
+                      customStyle={{ margin: 0, padding: '8px', background: 'transparent', fontSize: '12px' }}
+                      codeTagProps={{ style: { fontFamily: 'Menlo, Monaco, Consolas, monospace' } }}
+                      wrapLongLines={true}
+                    >
+                      {currentRequest.body.graphql?.variables || '{}'}
+                    </PrismLight>
+                    <textarea
+                      className="w-full h-16 bg-transparent text-transparent absolute inset-0 p-2 font-mono text-xs resize-none focus:outline-none caret-white"
+                      value={currentRequest.body.graphql?.variables || '{}'}
+                      onChange={(e) => updateRequest({ body: { ...currentRequest.body, graphql: { query: currentRequest.body.graphql?.query || '', variables: e.target.value } } })}
+                      spellCheck={false}
+                    />
+                  </div>
                 </div>
               </div>
             )}
             {currentRequest.body.type !== 'none' && currentRequest.body.type !== 'graphql' && (
-              <Editor
-                height="200px"
-                defaultLanguage="json"
-                value={currentRequest.body.content}
-                onChange={(value) => updateRequest({ body: { ...currentRequest.body, content: value || '' } })}
-                theme="vs-dark"
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 12,
-                  lineNumbers: 'off',
-                  scrollBeyondLastLine: false,
-                }}
-              />
+              <div className="bg-[#1e1e1e] rounded border border-gray-600 overflow-hidden">
+                <PrismLight
+                  language="json"
+                  style={vscDarkPlus}
+                  customStyle={{ margin: 0, padding: '8px', background: 'transparent', fontSize: '12px', minHeight: '200px' }}
+                  codeTagProps={{ style: { fontFamily: 'Menlo, Monaco, Consolas, monospace' } }}
+                  wrapLongLines={true}
+                >
+                  {currentRequest.body.content}
+                </PrismLight>
+                <textarea
+                  className="w-full h-48 bg-transparent text-transparent absolute font-mono text-xs resize-none focus:outline-none caret-white p-2"
+                  value={currentRequest.body.content}
+                  onChange={(e) => updateRequest({ body: { ...currentRequest.body, content: e.target.value } })}
+                  spellCheck={false}
+                />
+              </div>
             )}
           </div>
         )}
@@ -480,33 +491,43 @@ export function RequestPanel() {
           <div className="space-y-3">
             <div>
               <label className="text-xs text-gray-400 block mb-1">Pre-request Script</label>
-              <Editor
-                height="120px"
-                defaultLanguage="javascript"
-                value={currentRequest.script.pre}
-                onChange={(value) => updateRequest({ script: { ...currentRequest.script, pre: value || '' } })}
-                theme="vs-dark"
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 12,
-                  lineNumbers: 'off',
-                }}
-              />
+              <div className="bg-[#1e1e1e] rounded border border-gray-600 overflow-hidden">
+                <PrismLight
+                  language="javascript"
+                  style={vscDarkPlus}
+                  customStyle={{ margin: 0, padding: '8px', background: 'transparent', fontSize: '12px', minHeight: '120px' }}
+                  codeTagProps={{ style: { fontFamily: 'Menlo, Monaco, Consolas, monospace' } }}
+                  wrapLongLines={true}
+                >
+                  {currentRequest.script.pre}
+                </PrismLight>
+                <textarea
+                  className="w-full h-28 bg-transparent text-transparent absolute font-mono text-xs resize-none focus:outline-none caret-white p-2"
+                  value={currentRequest.script.pre}
+                  onChange={(e) => updateRequest({ script: { ...currentRequest.script, pre: e.target.value } })}
+                  spellCheck={false}
+                />
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-400 block mb-1">Post-request Script</label>
-              <Editor
-                height="120px"
-                defaultLanguage="javascript"
-                value={currentRequest.script.post}
-                onChange={(value) => updateRequest({ script: { ...currentRequest.script, post: value || '' } })}
-                theme="vs-dark"
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 12,
-                  lineNumbers: 'off',
-                }}
-              />
+              <div className="bg-[#1e1e1e] rounded border border-gray-600 overflow-hidden">
+                <PrismLight
+                  language="javascript"
+                  style={vscDarkPlus}
+                  customStyle={{ margin: 0, padding: '8px', background: 'transparent', fontSize: '12px', minHeight: '120px' }}
+                  codeTagProps={{ style: { fontFamily: 'Menlo, Monaco, Consolas, monospace' } }}
+                  wrapLongLines={true}
+                >
+                  {currentRequest.script.post}
+                </PrismLight>
+                <textarea
+                  className="w-full h-28 bg-transparent text-transparent absolute font-mono text-xs resize-none focus:outline-none caret-white p-2"
+                  value={currentRequest.script.post}
+                  onChange={(e) => updateRequest({ script: { ...currentRequest.script, post: e.target.value } })}
+                  spellCheck={false}
+                />
+              </div>
             </div>
           </div>
         )}

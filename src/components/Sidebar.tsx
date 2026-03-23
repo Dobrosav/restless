@@ -10,14 +10,13 @@ function RequestItem({ request, isActive, onClick, onDelete }: { request: any; i
     PATCH: 'text-purple-400',
     DELETE: 'text-red-400',
   }
-  
+
   return (
     <div className="flex items-center gap-1 group">
       <button
         onClick={onClick}
-        className={`flex-1 text-left text-sm py-1 px-2 rounded flex items-center gap-2 ${
-          isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'
-        }`}
+        className={`flex-1 text-left text-sm py-1 px-2 rounded flex items-center gap-2 ${isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'
+          }`}
       >
         <span className={`text-xs font-mono ${methodColors[request.method] || 'text-gray-400'}`}>
           {request.method}
@@ -55,18 +54,18 @@ export function Sidebar() {
       alert('Please open a workspace folder first!')
       return
     }
-    
+
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.json'
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file || !workspace) return
-      
+
       try {
         const text = await file.text()
         const result = await window.electronAPI.postmanImport(workspace.path, text)
-        
+
         if (result.success && result.collectionName) {
           // Load the imported collection from disk
           const newCollection = {
@@ -75,12 +74,12 @@ export function Sidebar() {
             path: result.collectionDir || '',
             requests: [] as any[],
           }
-          
+
           // Load all request files from the collection directory
           const loadRequestsRecursive = async (dirPath: string): Promise<any[]> => {
             const items = await window.electronAPI.readDir(dirPath)
             const requests: any[] = []
-            
+
             for (const item of items) {
               if (item.isDirectory) {
                 // Recursively load from subdirectories
@@ -101,13 +100,13 @@ export function Sidebar() {
             }
             return requests
           }
-          
+
           const requests = await loadRequestsRecursive(result.collectionDir || '')
           newCollection.requests = requests
-          
+
           const newCollections = [...workspace.collections, newCollection]
           setWorkspace({ ...workspace, collections: newCollections })
-          
+
           alert(`Successfully imported collection "${result.collectionName}" with ${requests.length} requests!`)
         } else {
           alert('Failed to import collection. ' + (result.error || 'Make sure the file is a valid Postman collection.'))
@@ -153,7 +152,7 @@ export function Sidebar() {
 
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim()) return
-    
+
     const path = await createCollection(newCollectionName.trim())
     if (path) {
       setNewCollectionName('')
@@ -236,7 +235,7 @@ export function Sidebar() {
           <span className="mr-1">{collectionsOpen ? '▼' : '▶'}</span>
           Collections
         </button>
-        
+
         {collectionsOpen && workspace && (
           <div className="space-y-2">
             {showNewCollection ? (
@@ -305,22 +304,22 @@ export function Sidebar() {
                         {collection.requests.length === 0 ? (
                           <p className="text-xs text-gray-500 p-1 italic">No requests</p>
                         ) : (
-                           collection.requests.map((request) => (
-                             <RequestItem
-                               key={request.id}
-                               request={request}
-                               isActive={currentRequest?.id === request.id}
-                               onClick={() => setCurrentRequest(request)}
-                               onDelete={async () => {
-                                 if (confirm(`Delete request "${request.name}"?`)) {
-                                   const success = await deleteRequest(request.id)
-                                   if (!success) {
-                                     alert('Failed to delete request')
-                                   }
-                                 }
-                               }}
-                             />
-                           ))
+                          collection.requests.map((request) => (
+                            <RequestItem
+                              key={request.id}
+                              request={request}
+                              isActive={currentRequest?.id === request.id}
+                              onClick={() => setCurrentRequest(request)}
+                              onDelete={async () => {
+                                if (confirm(`Delete request "${request.name}"?`)) {
+                                  const success = await deleteRequest(request.id)
+                                  if (!success) {
+                                    alert('Failed to delete request')
+                                  }
+                                }
+                              }}
+                            />
+                          ))
                         )}
                       </div>
                     )}
@@ -349,7 +348,7 @@ export function Sidebar() {
                 ×
               </button>
             </div>
-            <p className="text-xs text-gray-400 mb-2">Nalepite curl komandu ispod:</p>
+            <p className="text-xs text-gray-400 mb-2">Paste curl command below:</p>
             <textarea
               value={curlInput}
               onChange={(e) => { setCurlInput(e.target.value); setCurlError('') }}
