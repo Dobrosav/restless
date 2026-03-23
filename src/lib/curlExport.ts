@@ -73,6 +73,11 @@ export function generateCurl(request: ApiRequest, environment?: Environment | nu
       const separator = url.includes('?') ? '&' : '?'
       curl = curl.replace(`'${url}'`, `'${url}${separator}${interpolate(request.auth.apiKey.key, environment)}=${interpolate(request.auth.apiKey.value, environment)}'`)
     }
+  } else if (request.auth.type === 'oauth2' && request.auth.oauth2) {
+    curl += ` # OAuth2: ${request.auth.oauth2.grantType} - Token will be auto-fetched`
+    if (request.auth.oauth2.accessToken) {
+      curl += ` -H 'Authorization: Bearer ${request.auth.oauth2.accessToken}'`
+    }
   }
 
   return curl

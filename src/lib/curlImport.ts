@@ -87,6 +87,8 @@ export function parseCurl(curlCommand: string): Partial<ApiRequest> {
   let basicUser = ''
   let basicPass = ''
   let bearerToken = ''
+  let hasWebSocketUpgrade = false
+  let hasGraphQLContentType = false
 
   let i = 0
   while (i < args.length) {
@@ -103,10 +105,15 @@ export function parseCurl(curlCommand: string): Partial<ApiRequest> {
       const header = args[++i] || ''
       const colonIdx = header.indexOf(':')
       if (colonIdx > 0) {
-        rawHeaders.push({
-          key: header.slice(0, colonIdx).trim(),
-          value: header.slice(colonIdx + 1).trim(),
-        })
+        const key = header.slice(0, colonIdx).trim()
+        const value = header.slice(colonIdx + 1).trim()
+        rawHeaders.push({ key, value })
+        if (key.toLowerCase() === 'upgrade' && value.toLowerCase() === 'websocket') {
+          hasWebSocketUpgrade = true
+        }
+        if (key.toLowerCase() === 'content-type' && value.toLowerCase().includes('graphql')) {
+          hasGraphQLContentType = true
+        }
       }
 
     // ── Data / Body ──────────────────────────────────────────────────────────
@@ -278,12 +285,66 @@ export function parseCurl(curlCommand: string): Partial<ApiRequest> {
     body = { type: resolved, content: dataBody }
   }
 
+  const isWebSocket = url.startsWith('ws://') || url.startsWith('wss://') || hasWebSocketUpgrade
+  
+  const isGraphQL = 
+    url.toLowerCase().includes('graphql') || 
+    hasGraphQLContentType ||
+    (dataBody && (dataBody.includes('query') || dataBody.includes('mutation') || dataBody.includes('subscription')))
+
+  const graphqlBody = isGraphQL ? parseGraphQLBody(dataBody) : null
+
   return {
-    method,
+    method: isWebSocket ? 'WS' : isGraphQL ? 'GRAPHQL' : method,
     url: baseUrl,
-    params,
-    headers,
-    body,
+    params: isWebSocket || isGraphQL ? [] : params,
+    headers: isWebSocket ? headers.filter(h => h.key.toLowerCase() !== 'upgrade') : headers,
+    body: isGraphQL && graphqlBody ? graphqlBody : body,
     auth,
   }
+}
+
+function parseGraphQLBody(dataBody: string): ApiRequest['body'] | null {
+  if (!dataBody) return null
+  
+  try {
+    const parsed = JSON.parse(dataBody)
+    if (parsed.query) {
+      return {
+        type: 'graphql',
+        content: dataBody,
+        graphql: {
+          query: parsed.query,
+          variables: typeof parsed.variables === 'string' ? parsed.variables : JSON.stringify(parsed.variables || {}, null, 2),
+        },
+      }
+    }
+  } catch {}
+  
+  if (dataBody.trim().startsWith('{') || dataBody.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(dataBody)
+      return {
+        type: 'graphql',
+        content: dataBody,
+        graphql: {
+          query: parsed.query || parsed.queryString || dataBody,
+          variables: parsed.variables ? JSON.stringify(parsed.variables, null, 2) : '{}',
+        },
+      }
+    } catch {}
+  }
+  
+  if (dataBody.includes('query') || dataBody.includes('mutation') || dataBody.includes('subscription')) {
+    return {
+      type: 'graphql',
+      content: dataBody,
+      graphql: {
+        query: dataBody,
+        variables: '{}',
+      },
+    }
+  }
+  
+  return null
 }

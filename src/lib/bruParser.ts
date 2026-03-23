@@ -16,6 +16,16 @@ export interface BruFile {
       basic?: { username: string; password: string }
       bearer?: { token: string }
       apiKey?: { key: string; value: string; in: 'header' | 'query' }
+      oauth2?: {
+        grantType: 'client_credentials' | 'password' | 'refresh_token'
+        tokenUrl: string
+        clientId: string
+        clientSecret: string
+        scope: string
+        username?: string
+        password?: string
+        autoRefresh: boolean
+      }
     }
     header: Array<{ key: string; value: string }>
     query: Array<{ key: string; value: string }>
@@ -44,6 +54,7 @@ export function requestToBru(request: ApiRequest): string {
         ...(request.auth.type === 'basic' && { basic: request.auth.basic }),
         ...(request.auth.type === 'bearer' && { bearer: request.auth.bearer }),
         ...(request.auth.type === 'api-key' && { apiKey: request.auth.apiKey }),
+        ...(request.auth.type === 'oauth2' && { oauth2: request.auth.oauth2 }),
       },
       header: request.headers.filter(h => h.enabled && h.key).map(h => ({ key: h.key, value: h.value })),
       query: request.params.filter(p => p.enabled && p.key).map(p => ({ key: p.key, value: p.value })),
@@ -85,6 +96,21 @@ export function requestToBru(request: ApiRequest): string {
     content += `      key: "${bru.request.auth.apiKey.key}"\n`
     content += `      value: "${bru.request.auth.apiKey.value}"\n`
     content += `      in: ${bru.request.auth.apiKey.in}\n`
+  }
+  if (bru.request.auth.type === 'oauth2' && bru.request.auth.oauth2) {
+    content += `    oauth2:\n`
+    content += `      grantType: "${bru.request.auth.oauth2.grantType}"\n`
+    content += `      tokenUrl: "${bru.request.auth.oauth2.tokenUrl}"\n`
+    content += `      clientId: "${bru.request.auth.oauth2.clientId}"\n`
+    content += `      clientSecret: "${bru.request.auth.oauth2.clientSecret}"\n`
+    content += `      scope: "${bru.request.auth.oauth2.scope}"\n`
+    if (bru.request.auth.oauth2.username) {
+      content += `      username: "${bru.request.auth.oauth2.username}"\n`
+    }
+    if (bru.request.auth.oauth2.password) {
+      content += `      password: "${bru.request.auth.oauth2.password}"\n`
+    }
+    content += `      autoRefresh: ${bru.request.auth.oauth2.autoRefresh}\n`
   }
   content += `\n`
   content += `  header:\n`
@@ -190,6 +216,27 @@ export function bruToRequest(content: string, id: string): ApiRequest {
     } else if (inAuth && trimmed.startsWith('in:')) {
       if (!request.auth!.apiKey) request.auth!.apiKey = { key: '', value: '', in: 'header' }
       request.auth!.apiKey.in = trimmed.replace('in:', '').trim() as 'header' | 'query'
+    } else if (inAuth && trimmed.startsWith('grantType:')) {
+      if (!request.auth!.oauth2) request.auth!.oauth2 = { grantType: 'client_credentials', tokenUrl: '', clientId: '', clientSecret: '', scope: '', autoRefresh: true }
+      request.auth!.oauth2.grantType = trimmed.replace('grantType:', '').trim().replace(/^["']|["']$/g, '') as any
+    } else if (inAuth && trimmed.startsWith('tokenUrl:')) {
+      if (!request.auth!.oauth2) request.auth!.oauth2 = { grantType: 'client_credentials', tokenUrl: '', clientId: '', clientSecret: '', scope: '', autoRefresh: true }
+      request.auth!.oauth2.tokenUrl = trimmed.replace('tokenUrl:', '').trim().replace(/^["']|["']$/g, '')
+    } else if (inAuth && trimmed.startsWith('clientId:')) {
+      if (!request.auth!.oauth2) request.auth!.oauth2 = { grantType: 'client_credentials', tokenUrl: '', clientId: '', clientSecret: '', scope: '', autoRefresh: true }
+      request.auth!.oauth2.clientId = trimmed.replace('clientId:', '').trim().replace(/^["']|["']$/g, '')
+    } else if (inAuth && trimmed.startsWith('clientSecret:')) {
+      if (!request.auth!.oauth2) request.auth!.oauth2 = { grantType: 'client_credentials', tokenUrl: '', clientId: '', clientSecret: '', scope: '', autoRefresh: true }
+      request.auth!.oauth2.clientSecret = trimmed.replace('clientSecret:', '').trim().replace(/^["']|["']$/g, '')
+    } else if (inAuth && trimmed.startsWith('scope:')) {
+      if (!request.auth!.oauth2) request.auth!.oauth2 = { grantType: 'client_credentials', tokenUrl: '', clientId: '', clientSecret: '', scope: '', autoRefresh: true }
+      request.auth!.oauth2.scope = trimmed.replace('scope:', '').trim().replace(/^["']|["']$/g, '')
+    } else if (inAuth && trimmed.startsWith('username:')) {
+      if (!request.auth!.oauth2) request.auth!.oauth2 = { grantType: 'client_credentials', tokenUrl: '', clientId: '', clientSecret: '', scope: '', autoRefresh: true }
+      request.auth!.oauth2.username = trimmed.replace('username:', '').trim().replace(/^["']|["']$/g, '')
+    } else if (inAuth && trimmed.startsWith('autoRefresh:')) {
+      if (!request.auth!.oauth2) request.auth!.oauth2 = { grantType: 'client_credentials', tokenUrl: '', clientId: '', clientSecret: '', scope: '', autoRefresh: true }
+      request.auth!.oauth2.autoRefresh = trimmed.replace('autoRefresh:', '').trim() === 'true'
     } else if (inHeader && trimmed.startsWith('- key:')) {
       const key = trimmed.replace('- key:', '').trim().replace(/^["']|["']$/g, '')
       let value = ''

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import { Workspace, ApiRequest, ResponseData, HttpMethod, Environment, Collection } from '../types'
+import { Workspace, ApiRequest, ResponseData, HttpMethod, Environment, Collection, SavedOAuth2Token } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
 interface AppState {
@@ -38,6 +38,10 @@ interface AppContextType extends AppState {
   updateEnvironment: (env: Environment) => void
   deleteEnvironment: (envId: string) => void
   refreshWorkspace: () => Promise<void>
+  saveOAuth2Token: (collectionId: string, tokenKey: string, token: SavedOAuth2Token) => Promise<void>
+  getOAuth2Token: (collectionId: string, tokenKey: string) => SavedOAuth2Token | null
+  clearOAuth2Token: (collectionId: string, tokenKey: string) => Promise<void>
+  clearAllOAuth2Tokens: (collectionId: string) => Promise<void>
 }
 
 const defaultRequest = (): ApiRequest => ({
@@ -122,6 +126,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
             console.error('Failed to load environments for collection', item.name, error)
           }
 
+          // Load saved OAuth2 tokens
+          let savedTokens: Record<string, any> = {}
+          try {
+            const tokensPath = `${item.path}/.oauth2-tokens.json`
+            if (await window.electronAPI.exists(tokensPath)) {
+              const tokensContent = await window.electronAPI.readFile(tokensPath)
+              if (tokensContent) {
+                savedTokens = JSON.parse(tokensContent)
+              }
+            }
+          } catch (error) {
+            console.error('Failed to load OAuth2 tokens for collection', item.name, error)
+          }
+
           const activeEnvId = localStorage.getItem(`activeEnv_${item.name}`) || undefined
 
           collections.push({
@@ -130,7 +148,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             path: item.path,
             requests,
             environments: envs,
-            activeEnvironmentId: activeEnvId
+            activeEnvironmentId: activeEnvId,
+            savedTokens
           })
         }
       }
@@ -243,6 +262,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         name,
         path: collectionPath,
         requests: [],
+        savedTokens: {},
       }
       setWorkspace({
         ...workspace,
@@ -453,6 +473,89 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [workspace, currentRequest])
 
+  const saveOAuth2Token = useCallback(async (collectionId: string, tokenKey: string, token: SavedOAuth2Token) => {
+    if (!workspace) return
+    const collection = workspace.collections.find(c => c.id === collectionId)
+    if (!collection) return
+
+    const updatedTokens = { ...(collection.savedTokens || {}), [tokenKey]: token }
+    const updatedCollection = { ...collection, savedTokens: updatedTokens }
+
+    setWorkspace({
+      ...workspace,
+      collections: workspace.collections.map(c =>
+        c.id === collectionId ? updatedCollection : c
+      ),
+    })
+
+    // Save tokens to file
+    try {
+      const tokensPath = `${collection.path}/.oauth2-tokens.json`
+      await window.electronAPI.writeFile(tokensPath, JSON.stringify(updatedTokens, null, 2))
+    } catch (error) {
+      console.error('Failed to save OAuth2 tokens:', error)
+    }
+  }, [workspace])
+
+  const getOAuth2Token = useCallback((collectionId: string, tokenKey: string): SavedOAuth2Token | null => {
+    if (!workspace) return null
+    const collection = workspace.collections.find(c => c.id === collectionId)
+    if (!collection || !collection.savedTokens) return null
+    return collection.savedTokens[tokenKey] || null
+  }, [workspace])
+
+  const clearOAuth2Token = useCallback(async (collectionId: string, tokenKey: string) => {
+    if (!workspace) return
+    const collection = workspace.collections.find(c => c.id === collectionId)
+    if (!collection) return
+
+    const updatedTokens = { ...(collection.savedTokens || {}) }
+    delete updatedTokens[tokenKey]
+    const updatedCollection = { ...collection, savedTokens: updatedTokens }
+
+    setWorkspace({
+      ...workspace,
+      collections: workspace.collections.map(c =>
+        c.id === collectionId ? updatedCollection : c
+      ),
+    })
+
+    // Save tokens to file
+    try {
+      const tokensPath = `${collection.path}/.oauth2-tokens.json`
+      if (Object.keys(updatedTokens).length > 0) {
+        await window.electronAPI.writeFile(tokensPath, JSON.stringify(updatedTokens, null, 2))
+      } else {
+        await window.electronAPI.delete(tokensPath)
+      }
+    } catch (error) {
+      console.error('Failed to clear OAuth2 token:', error)
+    }
+  }, [workspace])
+
+  const clearAllOAuth2Tokens = useCallback(async (collectionId: string) => {
+    if (!workspace) return
+    const collection = workspace.collections.find(c => c.id === collectionId)
+    if (!collection) return
+
+    const updatedCollection = { ...collection, savedTokens: {} }
+
+    setWorkspace({
+      ...workspace,
+      collections: workspace.collections.map(c =>
+        c.id === collectionId ? updatedCollection : c
+      ),
+    })
+
+    // Delete tokens file
+    try {
+      const tokensPath = `${collection.path}/.oauth2-tokens.json`
+      await window.electronAPI.delete(tokensPath)
+    } catch (error) {
+      console.error('Failed to clear all OAuth2 tokens:', error)
+    }
+  }, [workspace])
+
   return (
     <AppContext.Provider
        value={{
@@ -501,9 +604,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           deleteCollection,
           createEnvironment,
           updateEnvironment,
-          deleteEnvironment,
-          refreshWorkspace,
-       }}
+           deleteEnvironment,
+           refreshWorkspace,
+           saveOAuth2Token,
+           getOAuth2Token,
+           clearOAuth2Token,
+           clearAllOAuth2Tokens,
+        }}
     >
       {children}
     </AppContext.Provider>

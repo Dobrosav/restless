@@ -5,6 +5,20 @@ import { randomUUID } from 'crypto'
 import simpleGit, { SimpleGit } from 'simple-git'
 import axios from 'axios'
 import { autoUpdater } from 'electron-updater'
+import WebSocket from 'ws'
+import Store from 'electron-store'
+
+interface OAuth2Token {
+  accessToken: string
+  refreshToken?: string
+  expiresAt: number
+  tokenType: string
+}
+
+const oauth2Store = new Store({
+  name: 'oauth2-tokens',
+  defaults: {}
+}) as unknown as { get: (key: string) => OAuth2Token | undefined; set: (key: string, value: OAuth2Token) => void; delete: (key: string) => void }
 
 interface Config {
   gitUserName: string
@@ -728,12 +742,178 @@ function buildHeaders(request: any, environment: any): Record<string, string> {
   return headers
 }
 
+async function fetchOAuth2Token(oauth2: any, environment: any): Promise<OAuth2Token | null> {
+  try {
+    const tokenUrl = interpolateEnvVariables(oauth2.tokenUrl, environment)
+    
+    if (!tokenUrl || !tokenUrl.startsWith('http')) {
+      return null
+    }
+    
+    const params = buildOAuth2Params(oauth2, environment)
+    
+    const response = await axios.post(
+      tokenUrl,
+      params.toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 }
+    )
+    
+    if (response.status !== 200) {
+      return null
+    }
+    
+    const token: OAuth2Token = {
+      accessToken: response.data.access_token,
+      refreshToken: response.data.refresh_token,
+      expiresAt: Date.now() + (response.data.expires_in || 3600) * 1000,
+      tokenType: response.data.token_type || 'Bearer',
+    }
+    
+    const tokenKey = `${oauth2.tokenUrl}_${oauth2.clientId}`
+    oauth2Store.set(tokenKey, token)
+    
+    return token
+  } catch (error: any) {
+    return null
+  }
+}
+
+async function refreshOAuth2Token(oauth2: any, refreshToken: string, environment: any): Promise<OAuth2Token | null> {
+  try {
+    const tokenUrl = interpolateEnvVariables(oauth2.tokenUrl, environment)
+    
+    if (!tokenUrl || !tokenUrl.startsWith('http')) {
+      return null
+    }
+    
+    const params = new URLSearchParams()
+    params.append('grant_type', 'refresh_token')
+    params.append('refresh_token', refreshToken)
+    params.append('client_id', interpolateEnvVariables(oauth2.clientId, environment))
+    params.append('client_secret', interpolateEnvVariables(oauth2.clientSecret, environment))
+    
+    const response = await axios.post(
+      tokenUrl,
+      params.toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 }
+    )
+    
+    if (response.status !== 200) {
+      return null
+    }
+    
+    const token: OAuth2Token = {
+      accessToken: response.data.access_token,
+      refreshToken: response.data.refresh_token || refreshToken,
+      expiresAt: Date.now() + (response.data.expires_in || 3600) * 1000,
+      tokenType: response.data.token_type || 'Bearer',
+    }
+    
+    const tokenKey = `${oauth2.tokenUrl}_${oauth2.clientId}`
+    oauth2Store.set(tokenKey, token)
+    
+    return token
+  } catch (error: any) {
+    console.error('OAuth2 token refresh failed:', error.message)
+    return null
+  }
+}
+
 const httpAbortControllers = new Map<number, AbortController>();
 
 ipcMain.handle('http:sendRequest', async (event, request: any, environment: any) => {
-  const requestId = Date.now();
-  const abortController = new AbortController();
-  httpAbortControllers.set(requestId, abortController);
+  if (request.method === 'WS') {
+    return new Promise((resolve) => {
+      const startTime = performance.now()
+      let url = interpolateEnvVariables(request.url, environment) || ''
+      if (url) {
+        url = url.replace(/^wss?\/\/?/i, 'wss://')
+        if (!/^wss?:\/\//i.test(url)) {
+          url = 'wss://' + url
+        }
+      }
+      
+      const ws = new WebSocket(url)
+      const messages: string[] = []
+      
+      ws.onopen = () => {
+        const bodyContent = request.body?.content || request.body?.graphql?.query || ''
+        if (bodyContent) {
+          ws.send(interpolateEnvVariables(bodyContent, environment))
+        }
+      }
+      
+      ws.onmessage = (event) => {
+        const data = typeof event.data === 'string' ? event.data : event.data.toString()
+        messages.push(data)
+      }
+      
+      ws.onerror = () => {
+        ws.close()
+      }
+      
+      ws.onclose = (event) => {
+        resolve({
+          status: event.code === 1000 ? 101 : 0,
+          statusText: event.code === 1000 ? 'Switching Protocols' : 'WebSocket Error',
+          headers: {},
+          body: messages.join('\n') || `Connection closed (${event.code})`,
+          time: Math.round(performance.now() - startTime),
+          size: new TextEncoder().encode(messages.join('\n')).length,
+          type: 'websocket',
+          wsMessages: messages,
+        })
+      }
+      
+      setTimeout(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close(1000, 'Timeout')
+        }
+      }, 5000)
+    })
+  }
+
+  let oauth2Token: string | null = null
+  let oauth2ExpiresAt: number | null = null
+  
+  if (request.auth?.type === 'oauth2' && request.auth?.oauth2) {
+    const oauth2 = request.auth.oauth2
+    
+    if (!oauth2.tokenUrl || !oauth2.clientId || !oauth2.clientSecret) {
+      console.log('[OAuth2] Skipping - missing fields. tokenUrl:', oauth2.tokenUrl, 'clientId:', oauth2.clientId)
+    } else {
+      const tokenKey = `${oauth2.tokenUrl}_${oauth2.clientId}`
+      const existingToken = oauth2Store.get(tokenKey) as OAuth2Token | undefined
+      
+      if (existingToken) {
+        const now = Date.now()
+        const bufferTime = oauth2.autoRefresh ? 5 * 60 * 1000 : 0
+        
+        if (existingToken.expiresAt > now + bufferTime) {
+          oauth2Token = existingToken.accessToken
+          oauth2ExpiresAt = existingToken.expiresAt
+        } else if (oauth2.grantType === 'refresh_token' && existingToken.refreshToken) {
+          const refreshResult = await refreshOAuth2Token(oauth2, existingToken.refreshToken, environment)
+          if (refreshResult) {
+            oauth2Token = refreshResult.accessToken
+            oauth2ExpiresAt = refreshResult.expiresAt
+          }
+        }
+      }
+      
+      if (!oauth2Token) {
+        const newToken = await fetchOAuth2Token(oauth2, environment)
+        if (newToken) {
+          oauth2Token = newToken.accessToken
+          oauth2ExpiresAt = newToken.expiresAt
+        }
+      }
+    }
+  }
+
+  const requestId = Date.now()
+  const abortController = new AbortController()
+  httpAbortControllers.set(requestId, abortController)
 
   try {
     const startTime = performance.now()
@@ -792,6 +972,10 @@ ipcMain.handle('http:sendRequest', async (event, request: any, environment: any)
       signal: abortController.signal,
     }
     
+    if (oauth2Token) {
+      axiosConfig.headers['Authorization'] = `Bearer ${oauth2Token}`
+    }
+    
     const axiosResponse = await axios(axiosConfig)
     const endTime = performance.now()
     httpAbortControllers.delete(requestId)
@@ -812,6 +996,12 @@ ipcMain.handle('http:sendRequest', async (event, request: any, environment: any)
       responseBody = String(axiosResponse.data)
     }
     
+    const oauth2ResponseData = oauth2Token ? {
+      accessToken: oauth2Token,
+      refreshToken: oauth2Store.get(`${request.auth?.oauth2?.tokenUrl}_${request.auth?.oauth2?.clientId}`)?.refreshToken,
+      expiresAt: oauth2ExpiresAt,
+    } : undefined
+
     return {
       status: axiosResponse.status,
       statusText: axiosResponse.statusText,
@@ -820,6 +1010,7 @@ ipcMain.handle('http:sendRequest', async (event, request: any, environment: any)
       time: Math.round(endTime - startTime),
       size: Buffer.byteLength(responseBody),
       type: 'http',
+      oauth2: oauth2ResponseData,
     }
   } catch (error: any) {
     httpAbortControllers.delete(requestId)
@@ -847,6 +1038,102 @@ ipcMain.handle('http:sendRequest', async (event, request: any, environment: any)
       type: 'http',
     }
   }
+})
+
+function buildOAuth2Params(oauth2: any, environment: any) {
+  const params = new URLSearchParams()
+  params.append('client_id', interpolateEnvVariables(oauth2.clientId, environment))
+  params.append('client_secret', interpolateEnvVariables(oauth2.clientSecret, environment))
+  
+  if (oauth2.grantType === 'client_credentials') {
+    params.append('grant_type', 'client_credentials')
+  } else if (oauth2.grantType === 'password') {
+    params.append('grant_type', 'password')
+    params.append('username', interpolateEnvVariables(oauth2.username, environment))
+    params.append('password', interpolateEnvVariables(oauth2.password, environment))
+  } else if (oauth2.grantType === 'refresh_token') {
+    params.append('grant_type', 'refresh_token')
+    if (oauth2.refreshToken) {
+      params.append('refresh_token', interpolateEnvVariables(oauth2.refreshToken, environment))
+    }
+  }
+  
+  if (oauth2.scope) {
+    params.append('scope', interpolateEnvVariables(oauth2.scope, environment))
+  }
+  
+  return params
+}
+
+ipcMain.handle('oauth2:getToken', async (event, oauth2: any, environment: any) => {
+  const tokenKey = `${oauth2.tokenUrl}_${oauth2.clientId}`
+  const existingToken = oauth2Store.get(tokenKey) as OAuth2Token | undefined
+  
+  if (existingToken) {
+    const now = Date.now()
+    const bufferTime = oauth2.autoRefresh ? 5 * 60 * 1000 : 0
+    
+    if (existingToken.expiresAt > now + bufferTime) {
+      return { success: true, token: existingToken.accessToken, expiresAt: existingToken.expiresAt, fromCache: true }
+    }
+    
+    if (oauth2.grantType === 'refresh_token' && existingToken.refreshToken) {
+      try {
+        const params = new URLSearchParams()
+        params.append('grant_type', 'refresh_token')
+        params.append('refresh_token', existingToken.refreshToken)
+        params.append('client_id', interpolateEnvVariables(oauth2.clientId, environment))
+        params.append('client_secret', interpolateEnvVariables(oauth2.clientSecret, environment))
+        
+        const response = await axios.post(
+          interpolateEnvVariables(oauth2.tokenUrl, environment),
+          params.toString(),
+          { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        )
+        
+        const newToken: OAuth2Token = {
+          accessToken: response.data.access_token,
+          refreshToken: response.data.refresh_token || existingToken.refreshToken,
+          expiresAt: Date.now() + (response.data.expires_in || 3600) * 1000,
+          tokenType: response.data.token_type || 'Bearer',
+        }
+        
+        oauth2Store.set(`tokens.${tokenKey}`, newToken)
+        return { success: true, token: newToken.accessToken, expiresAt: newToken.expiresAt, fromCache: false }
+      } catch (error: any) {
+        console.error('OAuth2 token refresh failed:', error.message)
+      }
+    }
+  }
+  
+  try {
+    const tokenUrl = interpolateEnvVariables(oauth2.tokenUrl, environment)
+    const params = buildOAuth2Params(oauth2, environment)
+    
+    const response = await axios.post(
+      tokenUrl,
+      params.toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    )
+    
+    const newToken: OAuth2Token = {
+      accessToken: response.data.access_token,
+      refreshToken: response.data.refresh_token,
+      expiresAt: Date.now() + (response.data.expires_in || 3600) * 1000,
+      tokenType: response.data.token_type || 'Bearer',
+    }
+    
+    oauth2Store.set(`tokens.${tokenKey}`, newToken)
+    return { success: true, token: newToken.accessToken, expiresAt: newToken.expiresAt, fromCache: false }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('oauth2:clearToken', async (event, oauth2: any) => {
+  const tokenKey = `${oauth2.tokenUrl}_${oauth2.clientId}`
+  oauth2Store.delete(tokenKey)
+  return { success: true }
 })
 
 ipcMain.handle('http:cancelRequest', async () => {

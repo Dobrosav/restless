@@ -6,6 +6,23 @@ import { createHttpClient } from '../lib/httpWorkerClient'
 
 const httpClient = createHttpClient()
 
+function getTokenStatus(expiresAt?: number): string {
+  if (!expiresAt) return 'No token'
+  const now = Date.now()
+  const remaining = expiresAt - now
+  if (remaining <= 0) return 'Expired'
+  if (remaining < 5 * 60 * 1000) return 'Expiring soon'
+  return 'Valid'
+}
+
+function getTokenStatusColor(expiresAt?: number): string {
+  if (!expiresAt) return 'bg-gray-600 text-gray-300'
+  const remaining = expiresAt - Date.now()
+  if (remaining <= 0) return 'bg-red-600 text-white'
+  if (remaining < 5 * 60 * 1000) return 'bg-yellow-600 text-white'
+  return 'bg-green-600 text-white'
+}
+
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'WS', 'GRAPHQL']
 
 const METHOD_COLORS: Record<HttpMethod, string> = {
@@ -84,12 +101,13 @@ function KeyValueEditor({ items, onChange, placeholder = 'Key' }: KeyValueEditor
 }
 
 export function RequestPanel() {
-  const { currentRequest, updateRequest, setTabResponse, clearTabResponse, setTabLoading, cancelRequest, createRequest, activeEnvironment, workspace, saveRequest, createCollection, tabResponses, activeTabId, isLoading } = useApp()
+  const { currentRequest, updateRequest, setTabResponse, clearTabResponse, setTabLoading, cancelRequest, createRequest, activeEnvironment, workspace, saveRequest, createCollection, tabResponses, activeTabId, isLoading, currentCollection, saveOAuth2Token, clearOAuth2Token, clearAllOAuth2Tokens } = useApp()
   const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'script'>('params')
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
   const [showNewCollectionInput, setShowNewCollectionInput] = useState(false)
   const [showCurlModal, setShowCurlModal] = useState(false)
+  const [curlCopied, setCurlCopied] = useState(false)
   const urlInputRef = useRef<HTMLInputElement>(null)
   const responseRef = useRef(tabResponses[activeTabId || ''] || null)
   responseRef.current = activeTabId ? tabResponses[activeTabId] || null : null
@@ -202,9 +220,57 @@ export function RequestPanel() {
       if (electronAPI && electronAPI.httpSendRequest) {
         const response = await electronAPI.httpSendRequest(currentRequest, activeEnvironment)
         setTabResponse(activeTabId, response)
+        
+        if (response.oauth2 && currentRequest.auth.type === 'oauth2') {
+          const tokenKey = `${currentRequest.auth.oauth2!.tokenUrl}_${currentRequest.auth.oauth2!.clientId}`
+          updateRequest({
+            auth: {
+              ...currentRequest.auth,
+              oauth2: {
+                ...currentRequest.auth.oauth2!,
+                accessToken: response.oauth2.accessToken,
+                refreshToken: response.oauth2.refreshToken,
+                expiresAt: response.oauth2.expiresAt,
+              }
+            }
+          })
+          if (currentCollection) {
+            saveOAuth2Token(currentCollection.id, tokenKey, {
+              accessToken: response.oauth2.accessToken,
+              refreshToken: response.oauth2.refreshToken,
+              expiresAt: response.oauth2.expiresAt,
+              tokenType: 'Bearer',
+              createdAt: Date.now(),
+            })
+          }
+        }
       } else {
         const response = await httpClient.sendRequest(currentRequest, activeEnvironment)
         setTabResponse(activeTabId, response)
+        
+        if (response.oauth2 && currentRequest.auth.type === 'oauth2') {
+          const tokenKey = `${currentRequest.auth.oauth2!.tokenUrl}_${currentRequest.auth.oauth2!.clientId}`
+          updateRequest({
+            auth: {
+              ...currentRequest.auth,
+              oauth2: {
+                ...currentRequest.auth.oauth2!,
+                accessToken: response.oauth2.accessToken,
+                refreshToken: response.oauth2.refreshToken,
+                expiresAt: response.oauth2.expiresAt,
+              }
+            }
+          })
+          if (currentCollection) {
+            saveOAuth2Token(currentCollection.id, tokenKey, {
+              accessToken: response.oauth2.accessToken,
+              refreshToken: response.oauth2.refreshToken,
+              expiresAt: response.oauth2.expiresAt,
+              tokenType: 'Bearer',
+              createdAt: Date.now(),
+            })
+          }
+        }
       }
     } catch (error: any) {
       setTabResponse(activeTabId, {
@@ -387,13 +453,34 @@ export function RequestPanel() {
           <div className="space-y-3">
             <select
               value={currentRequest.auth.type}
-              onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, type: e.target.value as any } })}
+              onChange={(e) => {
+                const newType = e.target.value as any
+                if (newType === 'oauth2') {
+                  updateRequest({ 
+                    auth: { 
+                      ...currentRequest.auth, 
+                      type: 'oauth2',
+                      oauth2: {
+                        grantType: 'client_credentials',
+                        tokenUrl: '',
+                        clientId: '',
+                        clientSecret: '',
+                        scope: '',
+                        autoRefresh: true,
+                      }
+                    } 
+                  })
+                } else {
+                  updateRequest({ auth: { ...currentRequest.auth, type: newType } })
+                }
+              }}
               className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
             >
               <option value="none">No Auth</option>
               <option value="basic">Basic Auth</option>
               <option value="bearer">Bearer Token</option>
               <option value="api-key">API Key</option>
+              <option value="oauth2">OAuth 2.0</option>
             </select>
             
             {currentRequest.auth.type === 'basic' && (
@@ -451,6 +538,189 @@ export function RequestPanel() {
                   <option value="header">Header</option>
                   <option value="query">Query Param</option>
                 </select>
+              </div>
+            )}
+
+            {currentRequest.auth.type === 'oauth2' && currentRequest.auth.oauth2 && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Grant Type</label>
+                  <select
+                    value={currentRequest.auth.oauth2.grantType}
+                    onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, oauth2: { ...currentRequest.auth.oauth2!, grantType: e.target.value as any } } })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  >
+                    <option value="client_credentials">Client Credentials</option>
+                    <option value="password">Password</option>
+                    <option value="refresh_token">Refresh Token</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Token URL</label>
+                  <input
+                    type="text"
+                    placeholder="https://auth.example.com/oauth/token"
+                    value={currentRequest.auth.oauth2.tokenUrl || ''}
+                    onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, oauth2: { ...currentRequest.auth.oauth2!, tokenUrl: e.target.value } } })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-400 block mb-1">Client ID</label>
+                    <input
+                      type="text"
+                      placeholder="client_id"
+                      value={currentRequest.auth.oauth2.clientId || ''}
+                      onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, oauth2: { ...currentRequest.auth.oauth2!, clientId: e.target.value } } })}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-400 block mb-1">Client Secret</label>
+                    <input
+                      type="password"
+                      placeholder="client_secret"
+                      value={currentRequest.auth.oauth2.clientSecret || ''}
+                      onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, oauth2: { ...currentRequest.auth.oauth2!, clientSecret: e.target.value } } })}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                    />
+                  </div>
+                </div>
+                
+                {currentRequest.auth.oauth2.grantType === 'password' && (
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-400 block mb-1">Username</label>
+                      <input
+                        type="text"
+                        placeholder="username"
+                        value={currentRequest.auth.oauth2.username || ''}
+                        onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, oauth2: { ...currentRequest.auth.oauth2!, username: e.target.value } } })}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-400 block mb-1">Password</label>
+                      <input
+                        type="password"
+                        placeholder="password"
+                        value={currentRequest.auth.oauth2.password || ''}
+                        onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, oauth2: { ...currentRequest.auth.oauth2!, password: e.target.value } } })}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Scope</label>
+                  <input
+                    type="text"
+                    placeholder="read write"
+                    value={currentRequest.auth.oauth2.scope || ''}
+                    onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, oauth2: { ...currentRequest.auth.oauth2!, scope: e.target.value } } })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="autoRefresh"
+                    checked={currentRequest.auth.oauth2.autoRefresh}
+                    onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, oauth2: { ...currentRequest.auth.oauth2!, autoRefresh: e.target.checked } } })}
+                    className="w-4 h-4 rounded"
+                  />
+                  <label htmlFor="autoRefresh" className="text-sm text-gray-300">Auto-refresh token before expiry</label>
+                </div>
+
+                {(currentCollection?.savedTokens && Object.keys(currentCollection.savedTokens).length > 0) ? (
+                  <div className="bg-gray-900 rounded p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-gray-400 font-medium">Saved Tokens in Collection ({Object.keys(currentCollection.savedTokens).length})</span>
+                      <button
+                        onClick={() => currentCollection && clearAllOAuth2Tokens(currentCollection.id)}
+                        className="text-xs text-red-400 hover:text-red-300"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {Object.entries(currentCollection.savedTokens).map(([key, token]) => {
+                        const status = getTokenStatus(token.expiresAt)
+                        const statusColor = getTokenStatusColor(token.expiresAt)
+                        return (
+                          <div key={key} className="flex items-center justify-between bg-gray-800 rounded p-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs text-gray-400 truncate">{key}</div>
+                              <div className="text-xs text-gray-500">
+                                Token: {token.accessToken.substring(0, 16)}...
+                                <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${statusColor}`}>
+                                  {status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-1 ml-2">
+                              <button
+                                onClick={() => {
+                                  updateRequest({ 
+                                    auth: { 
+                                      ...currentRequest.auth, 
+                                      oauth2: { 
+                                        ...currentRequest.auth.oauth2!, 
+                                        accessToken: token.accessToken,
+                                        refreshToken: token.refreshToken,
+                                        expiresAt: token.expiresAt,
+                                      } 
+                                    } 
+                                  })
+                                }}
+                                className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                              >
+                                Use
+                              </button>
+                              <button
+                                onClick={() => currentCollection && clearOAuth2Token(currentCollection.id, key)}
+                                className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 rounded p-3 text-center">
+                    <div className="text-xs text-gray-500">
+                      No saved tokens yet.<br/>
+                      Send a request with OAuth2 to save a token here.
+                    </div>
+                  </div>
+                )}
+                
+                {currentRequest.auth.oauth2.accessToken && (
+                  <div className="bg-gray-900 rounded p-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-gray-400">Current Token</span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${getTokenStatusColor(currentRequest.auth.oauth2.expiresAt)}`}>
+                        {getTokenStatus(currentRequest.auth.oauth2.expiresAt)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 break-all">
+                      Token: {currentRequest.auth.oauth2.accessToken.substring(0, 20)}...
+                    </div>
+                    {currentRequest.auth.oauth2.expiresAt && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Expires: {new Date(currentRequest.auth.oauth2.expiresAt).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -627,16 +897,17 @@ export function RequestPanel() {
                  </code>
                </div>
                
-               <div className="flex gap-2">
-                 <button
-                   onClick={() => {
-                     navigator.clipboard.writeText(generateCurl(currentRequest, activeEnvironment))
-                     alert('cURL command copied to clipboard!')
-                   }}
-                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium"
-                 >
-                   Copy to Clipboard
-                 </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(generateCurl(currentRequest, activeEnvironment))
+                      setCurlCopied(true)
+                      setTimeout(() => setCurlCopied(false), 2000)
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium"
+                  >
+                    {curlCopied ? '✓ Copied' : 'Copy to Clipboard'}
+                  </button>
                  <button
                    onClick={() => setShowCurlModal(false)}
                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm font-medium"

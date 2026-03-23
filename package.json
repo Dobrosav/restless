@@ -1,6 +1,6 @@
 {
   "name": "restless",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@types/ws": "^8.18.1",
     "axios": "^1.13.6",
     "dompurify": "^3.3.3",
     "electron-store": "^11.0.2",
@@ -53,7 +54,8 @@
     "react-dom": "^19.2.4",
     "react-syntax-highlighter": "^16.1.1",
     "simple-git": "^3.32.3",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "ws": "^8.20.0"
   },
   "overrides": {
     "dompurify": "^3.3.3"

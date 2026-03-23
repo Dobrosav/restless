@@ -16,10 +16,23 @@ export interface RequestBody {
 }
 
 export interface Auth {
-  type: 'none' | 'basic' | 'bearer' | 'api-key'
+  type: 'none' | 'basic' | 'bearer' | 'api-key' | 'oauth2'
   basic?: { username: string; password: string }
   bearer?: { token: string }
   apiKey?: { key: string; value: string; in: 'header' | 'query' }
+  oauth2?: {
+    grantType: 'client_credentials' | 'password' | 'refresh_token'
+    tokenUrl: string
+    clientId: string
+    clientSecret: string
+    scope: string
+    username?: string
+    password?: string
+    accessToken?: string
+    refreshToken?: string
+    expiresAt?: number
+    autoRefresh: boolean
+  }
 }
 
 export interface RequestScript {
@@ -48,6 +61,19 @@ export interface ResponseData {
   size: number
   type: 'http' | 'websocket' | 'graphql'
   wsMessages?: string[]
+  oauth2?: {
+    accessToken: string
+    refreshToken?: string
+    expiresAt: number
+  }
+}
+
+export interface SavedOAuth2Token {
+  accessToken: string
+  refreshToken?: string
+  expiresAt: number
+  tokenType: string
+  createdAt: number
 }
 
 export interface Collection {
@@ -57,6 +83,7 @@ export interface Collection {
   requests: ApiRequest[]
   environments?: Environment[]
   activeEnvironmentId?: string
+  savedTokens?: Record<string, SavedOAuth2Token>
 }
 
 export interface Environment {
