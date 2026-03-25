@@ -32,6 +32,14 @@ function AppContent() {
             try {
               const request = JSON.parse(content)
               request.path = item.path
+              request.name = request.name || 'Untitled'
+              request.method = request.method || 'GET'
+              request.url = request.url || ''
+              request.params = request.params || []
+              request.headers = request.headers || []
+              request.body = request.body || { type: 'none', content: '' }
+              request.auth = request.auth || { type: 'none' }
+              request.script = request.script || { pre: '', post: '' }
               requests.push(request)
             } catch {
               console.error('Failed to parse:', item.path)

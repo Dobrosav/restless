@@ -96,6 +96,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
               try {
                 const request = JSON.parse(content)
                 request.path = item.path
+                request.name = request.name || 'Untitled'
+                request.method = request.method || 'GET'
+                request.url = request.url || ''
+                request.params = request.params || []
+                request.headers = request.headers || []
+                request.body = request.body || { type: 'none', content: '' }
+                request.auth = request.auth || { type: 'none' }
+                request.script = request.script || { pre: '', post: '' }
                 requests.push(request)
               } catch {
                 console.error('Failed to parse:', item.path)
@@ -260,7 +268,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
      const collection = workspace.collections.find(c => c.id === collectionId)
      if (!collection) return false
      
-     const fileName = `${currentRequest.name.replace(/[^a-zA-Z0-9]/g, '_')}.json`
+     const fileName = `${(currentRequest.name || 'Untitled').replace(/[^a-zA-Z0-9]/g, '_')}.json`
      const filePath = `${collection.path}/${fileName}`
      
      try {
@@ -382,9 +390,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!request) return false
       
       // Delete the file
-      const fileName = `${request.name.replace(/[^a-zA-Z0-9]/g, '_')}.json`
-      const filePath = `${collection.path}/${fileName}`
-      await window.electronAPI.delete(filePath)
+      if (request.path) {
+        await window.electronAPI.delete(request.path)
+      } else {
+        const fileName = `${(request.name || 'Untitled').replace(/[^a-zA-Z0-9]/g, '_')}.json`
+        const filePath = `${collection.path}/${fileName}`
+        await window.electronAPI.delete(filePath)
+      }
       
       // Auto-stage deletion with git
       try {

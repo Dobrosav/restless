@@ -37,6 +37,7 @@ export interface ApiRequest {
   body: RequestBody
   auth: Auth
   script: RequestScript
+  path?: string
 }
 
 export interface ResponseData {
