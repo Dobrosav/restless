@@ -143,6 +143,7 @@ export function importPostmanCollection(json: string): Collection[] {
         name: collectionName,
         path: '',
         requests,
+        collections: [],
       })
     }
 
@@ -154,12 +155,19 @@ export function importPostmanCollection(json: string): Collection[] {
 }
 
 export function exportToPostman(collection: Collection): string {
-  const postmanCollection: PostmanCollection = {
-    info: {
-      name: collection.name,
-      schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
-    },
-    item: collection.requests.map(req => {
+  const buildItems = (coll: Collection): PostmanItem[] => {
+    const items: PostmanItem[] = []
+
+    if (coll.collections) {
+      for (const sub of coll.collections) {
+        items.push({
+          name: sub.name,
+          item: buildItems(sub),
+        })
+      }
+    }
+
+    for (const req of coll.requests) {
       const request: PostmanRequest = {
         method: req.method,
         url: req.url,
@@ -230,8 +238,18 @@ export function exportToPostman(collection: Collection): string {
         }
       }
 
-      return { name: req.name, request }
-    }),
+      items.push({ name: req.name, request })
+    }
+
+    return items
+  }
+
+  const postmanCollection: PostmanCollection = {
+    info: {
+      name: collection.name,
+      schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+    },
+    item: buildItems(collection),
   }
 
   return JSON.stringify(postmanCollection, null, 2)

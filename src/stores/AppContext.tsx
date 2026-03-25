@@ -52,6 +52,32 @@ const defaultRequest = (): ApiRequest => ({
   script: { pre: '', post: '' },
 })
 
+const findCollectionRecursive = (collections: Collection[], predicate: (c: Collection) => boolean): Collection | null => {
+  for (const c of collections) {
+    if (predicate(c)) return c
+    const found = findCollectionRecursive(c.collections || [], predicate)
+    if (found) return found
+  }
+  return null
+}
+
+const updateCollectionRecursive = (collections: Collection[], targetId: string, updater: (c: Collection) => Collection): Collection[] => {
+  return collections.map(c => {
+    if (c.id === targetId) return updater(c)
+    return {
+      ...c,
+      collections: updateCollectionRecursive(c.collections || [], targetId, updater)
+    }
+  })
+}
+
+const removeCollectionRecursive = (collections: Collection[], targetId: string): Collection[] => {
+  return collections.filter(c => c.id !== targetId).map(c => ({
+    ...c,
+    collections: removeCollectionRecursive(c.collections || [], targetId)
+  }))
+}
+
 const AppContext = createContext<AppContextType | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -59,7 +85,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [tabs, setTabs] = useState<ApiRequest[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const currentRequest = tabs.find(t => t.id === activeTabId) || null
-  const currentCollection = workspace?.collections.find(c => c.requests.some(r => r.id === currentRequest?.id)) || null
+  const currentCollection = workspace ? findCollectionRecursive(workspace.collections, c => c.requests.some(r => r.id === currentRequest?.id)) : null
   const environments = currentCollection?.environments || []
   const activeEnvironment = environments.find(e => e.id === currentCollection?.activeEnvironmentId) || null
   
@@ -80,67 +106,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!workspace) return
     
     try {
-      // 1. Load collections
       const collections: Collection[] = []
       
-      const loadRequestsRecursively = async (dirPath: string): Promise<any[]> => {
+      const loadCollectionData = async (folderPath: string, folderName: string): Promise<Collection> => {
         const requests: any[] = []
-        const items = await window.electronAPI.readDir(dirPath)
+        const subCollections: Collection[] = []
+        let envs: Environment[] = []
+        
+        const items = await window.electronAPI.readDir(folderPath)
+        
         for (const item of items) {
-          if (item.isDirectory) {
-            const subRequests = await loadRequestsRecursively(item.path)
-            requests.push(...subRequests)
-          } else if (item.name.endsWith('.json') && item.name !== 'environments.json') {
-            const content = await window.electronAPI.readFile(item.path)
-            if (content) {
+          if (item.isDirectory && item.name !== '.git') {
+            const childColl = await loadCollectionData(item.path, item.name)
+            subCollections.push(childColl)
+          } else if (item.name.endsWith('.json')) {
+            if (item.name === 'environments.json') {
               try {
-                const request = JSON.parse(content)
-                request.path = item.path
-                request.id = request.id || crypto.randomUUID()
-                request.name = request.name || 'Untitled'
-                request.method = request.method || 'GET'
-                request.url = request.url || ''
-                request.params = request.params || []
-                request.headers = request.headers || []
-                request.body = request.body || { type: 'none', content: '' }
-                request.auth = request.auth || { type: 'none' }
-                request.script = request.script || { pre: '', post: '' }
-                requests.push(request)
-              } catch {
-                console.error('Failed to parse:', item.path)
+                const content = await window.electronAPI.readFile(item.path)
+                if (content) envs = JSON.parse(content)
+              } catch (e) {
+                console.error('Failed to parse environments.json:', item.path)
+              }
+            } else {
+              const content = await window.electronAPI.readFile(item.path)
+              if (content) {
+                try {
+                  const request = JSON.parse(content)
+                  request.path = item.path
+                  request.id = request.id || crypto.randomUUID()
+                  request.name = request.name || 'Untitled'
+                  request.method = request.method || 'GET'
+                  request.url = request.url || ''
+                  request.params = request.params || []
+                  request.headers = request.headers || []
+                  request.body = request.body || { type: 'none', content: '' }
+                  request.auth = request.auth || { type: 'none' }
+                  request.script = request.script || { pre: '', post: '' }
+                  requests.push(request)
+                } catch {
+                  console.error('Failed to parse:', item.path)
+                }
               }
             }
           }
         }
-        return requests
+        
+        const activeEnvId = localStorage.getItem(`activeEnv_${folderName}`) || undefined
+        
+        return {
+          id: folderPath, // use path as a stable distinct ID
+          name: folderName,
+          path: folderPath,
+          requests,
+          collections: subCollections,
+          environments: envs,
+          activeEnvironmentId: activeEnvId
+        }
       }
-      
+
       const items = await window.electronAPI.readDir(workspace.path)
       for (const item of items) {
         if (item.isDirectory && item.name !== '.git') {
-          const requests = await loadRequestsRecursively(item.path)
-          
-          let envs: Environment[] = []
-          try {
-            const envPath = `${item.path}/environments.json`
-            if (await window.electronAPI.exists(envPath)) {
-              const content = await window.electronAPI.readFile(envPath)
-              if (content) envs = JSON.parse(content)
-            }
-          } catch (error) {
-            console.error('Failed to load environments for collection', item.name, error)
-          }
-
-          const activeEnvId = localStorage.getItem(`activeEnv_${item.name}`) || undefined
-
-          collections.push({
-            id: item.name,
-            name: item.name,
-            path: item.path,
-            requests,
-            environments: envs,
-            activeEnvironmentId: activeEnvId
-          })
+          const collection = await loadCollectionData(item.path, item.name)
+          collections.push(collection)
         }
       }
 
@@ -167,7 +195,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const saveEnvironmentsToDisk = async (collectionId: string, envs: Environment[]) => {
     if (!workspace) return
-    const collection = workspace.collections.find(c => c.id === collectionId)
+    const collection = findCollectionRecursive(workspace.collections, c => c.id === collectionId)
     if (!collection) return
     
     const envPath = `${collection.path}/environments.json`
@@ -242,21 +270,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [openTab])
 
-  const createCollection = useCallback(async (name: string): Promise<string | null> => {
+  const createCollection = useCallback(async (name: string, parentId?: string): Promise<string | null> => {
     if (!workspace) return null
-    const collectionPath = `${workspace.path}/${name}`
+    let parentPath = workspace.path
+    if (parentId) {
+      const parent = findCollectionRecursive(workspace.collections, c => c.id === parentId)
+      if (parent) parentPath = parent.path
+    }
+    const collectionPath = `${parentPath}/${name}`
     try {
       await window.electronAPI.mkdir(collectionPath)
       const newCollection = {
-        id: name,
+        id: collectionPath,
         name,
         path: collectionPath,
         requests: [],
+        collections: []
       }
-      setWorkspace({
-        ...workspace,
-        collections: [...workspace.collections, newCollection],
-      })
+      if (parentId) {
+        setWorkspace({
+          ...workspace,
+          collections: updateCollectionRecursive(workspace.collections, parentId, c => ({
+            ...c,
+            collections: [...(c.collections || []), newCollection]
+          }))
+        })
+      } else {
+        setWorkspace({
+          ...workspace,
+          collections: [...workspace.collections, newCollection],
+        })
+      }
       return collectionPath
     } catch {
       return null
@@ -266,7 +310,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
    const saveRequest = useCallback(async (collectionId: string): Promise<boolean> => {
      if (!workspace || !currentRequest) return false
      
-     const collection = workspace.collections.find(c => c.id === collectionId)
+     const collection = findCollectionRecursive(workspace.collections, c => c.id === collectionId)
      if (!collection) return false
      
      const fileName = `${(currentRequest.name || 'Untitled').replace(/[^a-zA-Z0-9]/g, '_')}.json`
@@ -297,16 +341,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
          updatedRequests = [...collection.requests, currentRequest]
        }
        
-       const updatedCollection = {
-         ...collection,
-         requests: updatedRequests,
-       }
-       
        setWorkspace({
          ...workspace,
-         collections: workspace.collections.map(c => 
-           c.id === collectionId ? updatedCollection : c
-         ),
+         collections: updateCollectionRecursive(workspace.collections, collectionId, c => ({
+           ...c,
+           requests: updatedRequests
+         }))
        })
        
        return true
@@ -326,9 +366,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     setWorkspace({
       ...workspace,
-      collections: workspace.collections.map(c => 
-        c.id === currentCollection.id ? { ...c, environments: newEnvs } : c
-      )
+      collections: updateCollectionRecursive(workspace.collections, currentCollection.id, c => ({
+        ...c,
+        environments: newEnvs
+      }))
     })
     saveEnvironmentsToDisk(currentCollection.id, newEnvs)
     return env
@@ -340,9 +381,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     setWorkspace({
       ...workspace,
-      collections: workspace.collections.map(c => 
-        c.id === currentCollection.id ? { ...c, environments: newEnvs } : c
-      )
+      collections: updateCollectionRecursive(workspace.collections, currentCollection.id, c => ({
+        ...c,
+        environments: newEnvs
+      }))
     })
     saveEnvironmentsToDisk(currentCollection.id, newEnvs)
   }, [workspace, currentCollection])
@@ -355,16 +397,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     setWorkspace({
       ...workspace,
-      collections: workspace.collections.map(c => {
-        if (c.id === currentCollection.id) {
-           return {
-             ...c,
-             environments: newEnvs,
-             activeEnvironmentId: isDeletingActive ? undefined : c.activeEnvironmentId
-           }
-        }
-        return c
-      })
+      collections: updateCollectionRecursive(workspace.collections, currentCollection.id, c => ({
+        ...c,
+        environments: newEnvs,
+        activeEnvironmentId: isDeletingActive ? undefined : c.activeEnvironmentId
+      }))
     })
     
     if (isDeletingActive) {
@@ -379,13 +416,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     try {
       // Find collection containing this request
-      const collectionIndex = workspace.collections.findIndex(c => 
-        c.requests.some(r => r.id === requestId)
-      )
+      const collection = findCollectionRecursive(workspace.collections, c => c.requests.some(r => r.id === requestId))
       
-      if (collectionIndex === -1) return false
+      if (!collection) return false
       
-      const collection = workspace.collections[collectionIndex]
       const request = collection.requests.find(r => r.id === requestId)
       
       if (!request) return false
@@ -406,19 +440,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.warn('Failed to auto-stage deletion:', gitError)
       }
       
-      // Update workspace state
-      const updatedCollection = {
-        ...collection,
-        requests: collection.requests.filter(r => r.id !== requestId),
-      }
-      
-      const updatedCollections = workspace.collections.map((c, i) => 
-        i === collectionIndex ? updatedCollection : c
-      )
-      
       setWorkspace({
         ...workspace,
-        collections: updatedCollections,
+        collections: updateCollectionRecursive(workspace.collections, collection.id, c => ({
+          ...c,
+          requests: c.requests.filter(r => r.id !== requestId)
+        }))
       })
       
       // Close tab if it was deleted
@@ -435,7 +462,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!workspace) return false
     
     try {
-      const collection = workspace.collections.find(c => c.id === collectionId)
+      const collection = findCollectionRecursive(workspace.collections, c => c.id === collectionId)
       if (!collection) return false
       
       // Delete the entire collection directory
@@ -448,16 +475,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.warn('Failed to auto-stage collection deletion:', gitError)
       }
       
-      // Update workspace state
-      const updatedCollections = workspace.collections.filter(c => c.id !== collectionId)
-      
       setWorkspace({
         ...workspace,
-        collections: updatedCollections,
+        collections: removeCollectionRecursive(workspace.collections, collectionId)
       })
       
       // Clear from tabs if it was from deleted collection
-      collection.requests.forEach(r => closeTab(r.id))
+      // Wait, we need to recursively gather all requests from this collection
+      const gatherRequests = (c: Collection): ApiRequest[] => {
+        let reqs = [...c.requests]
+        for (const sub of (c.collections || [])) {
+          reqs = [...reqs, ...gatherRequests(sub)]
+        }
+        return reqs
+      }
+      gatherRequests(collection).forEach(r => closeTab(r.id))
       
       return true
     } catch (error) {

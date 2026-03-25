@@ -158,20 +158,41 @@ export function RequestPanel() {
   // Check if current request is already saved
   const isRequestSaved = () => {
     if (!currentRequest || !workspace) return false
-    return workspace.collections.some(collection =>
-      collection.requests.some(req => req.id === currentRequest.id)
-    )
+    const checkCollection = (collections: any[]): boolean => {
+      for (const collection of collections) {
+        if (collection.requests.some((req: any) => req.id === currentRequest.id)) return true
+        if (collection.collections && checkCollection(collection.collections)) return true
+      }
+      return false
+    }
+    return checkCollection(workspace.collections)
   }
 
   // Get the collection where the request is saved
   const getSavedCollection = () => {
     if (!currentRequest || !workspace) return null
-    for (const collection of workspace.collections) {
-      if (collection.requests.some(req => req.id === currentRequest.id)) {
-        return collection
+    const findCollection = (collections: any[]): any => {
+      for (const collection of collections) {
+        if (collection.requests.some((req: any) => req.id === currentRequest.id)) return collection
+        if (collection.collections) {
+          const found = findCollection(collection.collections)
+          if (found) return found
+        }
+      }
+      return null
+    }
+    return findCollection(workspace.collections)
+  }
+
+  const getFlatCollections = (collections: any[], prefix = ''): { id: string, name: string }[] => {
+    let result: { id: string, name: string }[] = []
+    for (const c of collections) {
+      result.push({ id: c.id, name: prefix + c.name })
+      if (c.collections && c.collections.length > 0) {
+        result = result.concat(getFlatCollections(c.collections, prefix + c.name + ' / '))
       }
     }
-    return null
+    return result
   }
 
   if (!currentRequest) {
@@ -512,15 +533,15 @@ export function RequestPanel() {
              <div className="mb-3">
                <label className="text-gray-400 text-sm">Collection</label>
                {workspace && workspace.collections.length > 0 ? (
-                 <select
-                   id="collection-select"
-                   defaultValue={getSavedCollection()?.id || ''}
-                   className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm mt-1"
-                 >
-                   {workspace?.collections.map(c => (
-                     <option key={c.id} value={c.id}>{c.name}</option>
-                   ))}
-                 </select>
+                   <select
+                     id="collection-select"
+                     defaultValue={getSavedCollection()?.id || ''}
+                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm mt-1"
+                   >
+                     {getFlatCollections(workspace?.collections || []).map(c => (
+                       <option key={c.id} value={c.id}>{c.name}</option>
+                     ))}
+                   </select>
                ) : (
                  <div className="text-gray-500 text-sm mt-1">No collections available</div>
                )}

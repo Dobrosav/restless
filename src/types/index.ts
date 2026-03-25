@@ -56,6 +56,7 @@ export interface Collection {
   name: string
   path: string
   requests: ApiRequest[]
+  collections: Collection[]
   environments?: Environment[]
   activeEnvironmentId?: string
 }
