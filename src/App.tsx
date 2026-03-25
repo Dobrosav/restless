@@ -94,10 +94,6 @@ function AppContent() {
         collections,
       })
       
-      const isConfigSet = await window.electronAPI.gitIsConfigSet()
-      if (!isConfigSet) {
-        setShowGitConfigDialog(true)
-      }
     }
     initWorkspace()
   }, [])
