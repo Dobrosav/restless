@@ -16,59 +16,67 @@ function AppContent() {
   const loadCollections = async (dirPath: string): Promise<Collection[]> => {
     const collections: Collection[] = []
     
-    const loadRequestsRecursively = async (dirPath: string): Promise<any[]> => {
+    const loadCollectionData = async (folderPath: string, folderName: string): Promise<Collection> => {
       const requests: any[] = []
-      const items = await window.electronAPI.readDir(dirPath)
+      const subCollections: Collection[] = []
+      let envs: Environment[] = []
+      
+      const items = await window.electronAPI.readDir(folderPath)
       
       for (const item of items) {
-        if (item.isDirectory) {
-          // Recursively load from subdirectories
-          const subRequests = await loadRequestsRecursively(item.path)
-          requests.push(...subRequests)
+        if (item.isDirectory && item.name !== '.git') {
+          const childColl = await loadCollectionData(item.path, item.name)
+          subCollections.push(childColl)
         } else if (item.name.endsWith('.json')) {
-          // Load request file
-          const content = await window.electronAPI.readFile(item.path)
-          if (content) {
+          if (item.name === 'environments.json') {
             try {
-              const request = JSON.parse(content)
-              request.path = item.path
-              requests.push(request)
-            } catch {
-              console.error('Failed to parse:', item.path)
+              const content = await window.electronAPI.readFile(item.path)
+              if (content) envs = JSON.parse(content)
+            } catch (e) {
+              console.error('Failed to parse environments.json:', item.path)
+            }
+          } else {
+            const content = await window.electronAPI.readFile(item.path)
+            if (content) {
+              try {
+                const request = JSON.parse(content)
+                request.path = item.path
+                request.id = request.id || crypto.randomUUID()
+                request.name = request.name || 'Untitled'
+                request.method = request.method || 'GET'
+                request.url = request.url || ''
+                request.params = request.params || []
+                request.headers = request.headers || []
+                request.body = request.body || { type: 'none', content: '' }
+                request.auth = request.auth || { type: 'none' }
+                request.script = request.script || { pre: '', post: '' }
+                requests.push(request)
+              } catch {
+                console.error('Failed to parse:', item.path)
+              }
             }
           }
         }
       }
       
-      return requests
+      const activeEnvId = localStorage.getItem(`activeEnv_${folderName}`) || undefined
+      
+      return {
+        id: folderPath, // use path as a stable distinct ID
+        name: folderName,
+        path: folderPath,
+        requests,
+        collections: subCollections,
+        environments: envs,
+        activeEnvironmentId: activeEnvId
+      }
     }
     
     const items = await window.electronAPI.readDir(dirPath)
     for (const item of items) {
       if (item.isDirectory && item.name !== '.git') {
-        const requests = await loadRequestsRecursively(item.path)
-        
-        let envs: Environment[] = []
-        try {
-          const envPath = `${item.path}/environments.json`
-          if (await window.electronAPI.exists(envPath)) {
-            const content = await window.electronAPI.readFile(envPath)
-            if (content) envs = JSON.parse(content)
-          }
-        } catch (error) {
-          console.error('Failed to load environments for collection', item.name, error)
-        }
-
-        const activeEnvId = localStorage.getItem(`activeEnv_${item.name}`) || undefined
-
-        collections.push({
-          id: item.name,
-          name: item.name,
-          path: item.path,
-          requests,
-          environments: envs,
-          activeEnvironmentId: activeEnvId
-        })
+        const collection = await loadCollectionData(item.path, item.name)
+        collections.push(collection)
       }
     }
     
@@ -86,10 +94,6 @@ function AppContent() {
         collections,
       })
       
-      const isConfigSet = await window.electronAPI.gitIsConfigSet()
-      if (!isConfigSet) {
-        setShowGitConfigDialog(true)
-      }
     }
     initWorkspace()
   }, [])

@@ -37,6 +37,7 @@ export interface ApiRequest {
   body: RequestBody
   auth: Auth
   script: RequestScript
+  path?: string
 }
 
 export interface ResponseData {
@@ -55,6 +56,7 @@ export interface Collection {
   name: string
   path: string
   requests: ApiRequest[]
+  collections: Collection[]
   environments?: Environment[]
   activeEnvironmentId?: string
 }

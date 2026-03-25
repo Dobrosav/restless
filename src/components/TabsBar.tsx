@@ -92,7 +92,7 @@ export function TabsBar() {
         })}
         <button
           onClick={createRequest}
-          className="text-gray-400 hover:text-white px-3 h-full flex items-center justify-center hover:bg-gray-800 transition-colors"
+          className="text-gray-400 hover:text-white px-3 h-full flex items-center justify-center hover:bg-gray-800 transition-colors shrink-0"
           title="New Request"
         >
           +

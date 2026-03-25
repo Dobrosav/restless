@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../stores/AppContext'
 import { parseCurl } from '../lib/curlImport'
+import { Collection } from '../types'
 
 function RequestItem({ request, isActive, onClick, onDelete }: { request: any; isActive: boolean; onClick: () => void; onDelete: () => void }) {
   const methodColors: Record<string, string> = {
@@ -18,7 +19,7 @@ function RequestItem({ request, isActive, onClick, onDelete }: { request: any; i
         className={`flex-1 text-left text-sm py-1 px-2 rounded flex items-center gap-2 ${isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'
           }`}
       >
-        <span className={`text-xs font-mono ${methodColors[request.method] || 'text-gray-400'}`}>
+        <span className={`text-xs font-mono w-10 ${methodColors[request.method] || 'text-gray-400'}`}>
           {request.method}
         </span>
         <span className="truncate">{request.name}</span>
@@ -37,8 +38,135 @@ function RequestItem({ request, isActive, onClick, onDelete }: { request: any; i
   )
 }
 
+function CollectionNode({
+  collection,
+  depth,
+  expandedCollections,
+  toggleExpanded,
+  currentRequest,
+  setCurrentRequest,
+  deleteRequest,
+  deleteCollection,
+  createCollection
+}: {
+  collection: Collection,
+  depth: number,
+  expandedCollections: Record<string, boolean>,
+  toggleExpanded: (id: string) => void,
+  currentRequest: any,
+  setCurrentRequest: any,
+  deleteRequest: any,
+  deleteCollection: any,
+  createCollection: any
+}) {
+  const isExpanded = expandedCollections[collection.id] !== false
+  const [showNewFolder, setShowNewFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+
+  const handleCreateSubFolder = async () => {
+    if (!newFolderName.trim()) return
+    const path = await createCollection(newFolderName.trim(), collection.id)
+    if (path) {
+      setNewFolderName('')
+      setShowNewFolder(false)
+      if (!isExpanded) toggleExpanded(collection.id)
+    } else {
+      alert('Failed to create subfolder')
+    }
+  }
+
+  return (
+    <div className="group/node mt-1">
+      <div 
+        className="flex items-center gap-1 relative hover:bg-gray-700 rounded transition-colors group/item" 
+        style={{ paddingLeft: `${depth * 12}px` }}
+      >
+        <button
+          onClick={() => toggleExpanded(collection.id)}
+          className="flex items-center flex-1 text-left text-sm text-gray-300 hover:text-white p-1"
+        >
+          <span className="mr-1 text-xs">{isExpanded ? '▼' : '▶'}</span>
+          <span className="truncate">{collection.name}</span>
+        </button>
+        <div className="flex bg-gray-700 opacity-0 group-hover/item:opacity-100 transition-opacity absolute right-1 items-center px-1 rounded">
+          <button
+            onClick={() => setShowNewFolder(true)}
+            className="text-[10px] text-blue-400 hover:text-blue-300 px-1.5"
+            title="New Subfolder"
+          >
+            +📁
+          </button>
+          <button
+            onClick={() => {
+              if (confirm(`Delete collection "${collection.name}" and all its contents?`)) {
+                deleteCollection(collection.id)
+              }
+            }}
+            className="text-xs text-red-400 hover:text-red-300 px-1.5"
+            title="Delete collection"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      {showNewFolder && (
+        <div className="flex gap-1 my-1" style={{ paddingLeft: `${(depth + 1) * 12 + 16}px` }}>
+          <input
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder="Folder name"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs text-white"
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateSubFolder()}
+          />
+          <button onClick={handleCreateSubFolder} className="text-xs text-green-400">✓</button>
+          <button onClick={() => setShowNewFolder(false)} className="text-xs text-red-400">✕</button>
+        </div>
+      )}
+
+      {isExpanded && (
+        <div className="space-y-0.5">
+          {collection.collections?.map(sub => (
+            <CollectionNode
+              key={sub.id}
+              collection={sub}
+              depth={depth + 1}
+              expandedCollections={expandedCollections}
+              toggleExpanded={toggleExpanded}
+              currentRequest={currentRequest}
+              setCurrentRequest={setCurrentRequest}
+              deleteRequest={deleteRequest}
+              deleteCollection={deleteCollection}
+              createCollection={createCollection}
+            />
+          ))}
+          {collection.requests.map((request) => (
+            <div style={{ paddingLeft: `${(depth + 1) * 12 + 4}px` }} key={request.id}>
+              <RequestItem
+                request={request}
+                isActive={currentRequest?.id === request.id}
+                onClick={() => setCurrentRequest(request)}
+                onDelete={async () => {
+                  if (confirm(`Delete request "${request.name}"?`)) {
+                    await deleteRequest(request.id)
+                  }
+                }}
+              />
+            </div>
+          ))}
+          {(!collection.collections || collection.collections.length === 0) && collection.requests.length === 0 && (
+            <p className="text-xs text-gray-500 p-1 italic" style={{ paddingLeft: `${(depth + 1) * 12 + 16}px` }}>Empty</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Sidebar() {
-  const { workspace, currentRequest, setCurrentRequest, createRequest, setWorkspace, createCollection, deleteRequest, deleteCollection, openTab } = useApp()
+  const { workspace, currentRequest, setCurrentRequest, createRequest, createCollection, deleteRequest, deleteCollection, openTab, refreshWorkspace } = useApp()
   const [collectionsOpen, setCollectionsOpen] = useState(true)
   const [showNewCollection, setShowNewCollection] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
@@ -67,47 +195,8 @@ export function Sidebar() {
         const result = await window.electronAPI.postmanImport(workspace.path, text)
 
         if (result.success && result.collectionName) {
-          // Load the imported collection from disk
-          const newCollection = {
-            id: result.collectionName,
-            name: result.collectionName,
-            path: result.collectionDir || '',
-            requests: [] as any[],
-          }
-
-          // Load all request files from the collection directory
-          const loadRequestsRecursive = async (dirPath: string): Promise<any[]> => {
-            const items = await window.electronAPI.readDir(dirPath)
-            const requests: any[] = []
-
-            for (const item of items) {
-              if (item.isDirectory) {
-                // Recursively load from subdirectories
-                const subRequests = await loadRequestsRecursive(item.path)
-                requests.push(...subRequests)
-              } else if (item.name.endsWith('.json')) {
-                // Load request file
-                const content = await window.electronAPI.readFile(item.path)
-                if (content) {
-                  try {
-                    const request = JSON.parse(content)
-                    requests.push(request)
-                  } catch (err) {
-                    console.error('Failed to parse request:', err)
-                  }
-                }
-              }
-            }
-            return requests
-          }
-
-          const requests = await loadRequestsRecursive(result.collectionDir || '')
-          newCollection.requests = requests
-
-          const newCollections = [...workspace.collections, newCollection]
-          setWorkspace({ ...workspace, collections: newCollections })
-
-          alert(`Successfully imported collection "${result.collectionName}" with ${requests.length} requests!`)
+          await refreshWorkspace()
+          alert(`Successfully imported collection "${result.collectionName}"!`)
         } else {
           alert('Failed to import collection. ' + (result.error || 'Make sure the file is a valid Postman collection.'))
         }
@@ -127,9 +216,6 @@ export function Sidebar() {
     }
     try {
       const parsed = parseCurl(trimmed)
-      // Build a complete request upfront and open it as a new tab.
-      // Using openTab avoids the state-batching race that would occur
-      // if we called createRequest() then updateRequest() in the same tick.
       const newRequest: import('../types').ApiRequest = {
         id: crypto.randomUUID(),
         name: parsed.url ? `Imported: ${parsed.method || 'GET'} ${parsed.url}` : 'Imported Request',
@@ -169,17 +255,12 @@ export function Sidebar() {
     }))
   }
 
-  const isCollectionExpanded = (collectionId: string) => {
-    return expandedCollections[collectionId] !== false
-  }
-
   return (
     <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
       <div className="p-3 border-b border-gray-700">
         <div className="flex items-center justify-between">
           <img src="./logo.png" alt="Restless" className="h-[98px] -ml-3 w-auto object-contain" />
           <div className="flex gap-1">
-            {/* Import button with hover dropdown */}
             <div
               className="relative"
               onMouseEnter={() => {
@@ -239,7 +320,7 @@ export function Sidebar() {
         {collectionsOpen && workspace && (
           <div className="space-y-2">
             {showNewCollection ? (
-              <div className="flex gap-1 mb-2">
+              <div className="flex gap-1 mb-2 px-1">
                 <input
                   type="text"
                   value={newCollectionName}
@@ -268,7 +349,7 @@ export function Sidebar() {
             ) : (
               <button
                 onClick={() => setShowNewCollection(true)}
-                className="text-xs text-blue-400 hover:text-blue-300 mb-2"
+                className="text-[11px] px-2 opacity-60 hover:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 mb-1"
               >
                 + New Collection
               </button>
@@ -276,54 +357,20 @@ export function Sidebar() {
             {workspace.collections.length === 0 ? (
               <p className="text-xs text-gray-500 p-2">No collections yet</p>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {workspace.collections.map((collection) => (
-                  <div key={collection.id} className="group">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => toggleCollectionExpanded(collection.id)}
-                        className="flex items-center flex-1 text-left text-sm text-gray-300 hover:text-white hover:bg-gray-700 p-1 rounded transition-colors"
-                      >
-                        <span className="mr-1 text-xs">{isCollectionExpanded(collection.id) ? '▼' : '▶'}</span>
-                        <span className="truncate">{collection.name}</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete collection "${collection.name}" and all its requests?`)) {
-                            deleteCollection(collection.id)
-                          }
-                        }}
-                        className="text-xs text-red-400 hover:text-red-300 px-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Delete collection"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    {isCollectionExpanded(collection.id) && (
-                      <div className="ml-4 mt-1 space-y-1">
-                        {collection.requests.length === 0 ? (
-                          <p className="text-xs text-gray-500 p-1 italic">No requests</p>
-                        ) : (
-                          collection.requests.map((request) => (
-                            <RequestItem
-                              key={request.id}
-                              request={request}
-                              isActive={currentRequest?.id === request.id}
-                              onClick={() => setCurrentRequest(request)}
-                              onDelete={async () => {
-                                if (confirm(`Delete request "${request.name}"?`)) {
-                                  const success = await deleteRequest(request.id)
-                                  if (!success) {
-                                    alert('Failed to delete request')
-                                  }
-                                }
-                              }}
-                            />
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <CollectionNode
+                    key={collection.id}
+                    collection={collection}
+                    depth={0}
+                    expandedCollections={expandedCollections}
+                    toggleExpanded={toggleCollectionExpanded}
+                    currentRequest={currentRequest}
+                    setCurrentRequest={setCurrentRequest}
+                    deleteRequest={deleteRequest}
+                    deleteCollection={deleteCollection}
+                    createCollection={createCollection}
+                  />
                 ))}
               </div>
             )}
@@ -331,11 +378,6 @@ export function Sidebar() {
         )}
       </div>
 
-      <div className="p-2 border-t border-gray-700">
-        <div className="text-xs text-gray-500">Press Enter to send request</div>
-      </div>
-
-      {/* cURL Import Modal */}
       {showImportCurlModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-4 rounded-lg w-[520px] max-w-full mx-4 shadow-xl">

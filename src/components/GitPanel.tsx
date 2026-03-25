@@ -113,6 +113,12 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
     if (!commitMessage.trim()) return
     setIsLoading(true)
     try {
+      const isConfigSet = await window.electronAPI.gitIsConfigSet()
+      if (!isConfigSet) {
+        if (onOpenConfig) onOpenConfig()
+        return
+      }
+
       const allFiles = [
         ...(status?.modified || []),
         ...(status?.not_added || []),
