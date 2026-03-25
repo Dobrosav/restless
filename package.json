@@ -92,7 +92,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "./public/logo.ico"
+      "icon": "./public/icon-512.png"
     },
     "mac": {
       "target": "zip",
