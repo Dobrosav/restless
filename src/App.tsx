@@ -32,6 +32,7 @@ function AppContent() {
             try {
               const request = JSON.parse(content)
               request.path = item.path
+              request.id = request.id || crypto.randomUUID()
               request.name = request.name || 'Untitled'
               request.method = request.method || 'GET'
               request.url = request.url || ''

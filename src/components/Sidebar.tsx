@@ -92,6 +92,7 @@ export function Sidebar() {
                   try {
                     const request = JSON.parse(content)
                     request.path = item.path
+                    request.id = request.id || crypto.randomUUID()
                     request.name = request.name || 'Untitled'
                     request.method = request.method || 'GET'
                     request.url = request.url || ''
@@ -338,10 +339,6 @@ export function Sidebar() {
             )}
           </div>
         )}
-      </div>
-
-      <div className="p-2 border-t border-gray-700">
-        <div className="text-xs text-gray-500">Press Enter to send request</div>
       </div>
 
       {/* cURL Import Modal */}
