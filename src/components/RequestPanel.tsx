@@ -3,6 +3,11 @@ import { useApp } from '../stores/AppContext'
 import { HttpMethod, KeyValue } from '../types'
 import { generateCurl } from '../lib/curlExport'
 import { createHttpClient } from '../lib/httpWorkerClient'
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+SyntaxHighlighter.registerLanguage('json', json)
 
 const httpClient = createHttpClient()
 
@@ -20,6 +25,59 @@ const METHOD_COLORS: Record<HttpMethod, string> = {
   GRAPHQL: 'text-pink-400',
 }
 
+interface KeyValueEditorProps {
+  items: KeyValue[]
+  onChange: (items: KeyValue[]) => void
+  placeholder?: string
+}
+
+function SyntaxEditor({ value, onChange, language }: { value: string, onChange: (val: string) => void, language: string }) {
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    const overlay = e.currentTarget.previousElementSibling as HTMLElement
+    if (overlay) {
+      overlay.scrollTop = e.currentTarget.scrollTop
+      overlay.scrollLeft = e.currentTarget.scrollLeft
+    }
+  }
+
+  return (
+    <div className="relative w-full h-52 bg-[#1e1e1e] rounded border border-gray-600 focus-within:border-blue-500 overflow-hidden font-mono text-xs">
+      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none" aria-hidden="true">
+        <SyntaxHighlighter
+          language={language === 'json' ? 'json' : 'text'}
+          style={vscDarkPlus}
+          customStyle={{
+            margin: 0,
+            padding: '12px',
+            minHeight: '100%',
+            minWidth: '100%',
+            backgroundColor: 'transparent',
+            fontSize: '12px',
+            lineHeight: '1.5',
+            boxSizing: 'border-box',
+          }}
+          wrapLongLines={false}
+        >
+          {value || ' '}
+        </SyntaxHighlighter>
+      </div>
+      <textarea
+        className="absolute inset-0 w-full h-full bg-transparent p-3 font-mono text-xs resize-none focus:outline-none"
+        style={{
+          lineHeight: '1.5',
+          color: 'transparent',
+          caretColor: 'white',
+          whiteSpace: 'pre',
+        }}
+        wrap="off"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={handleScroll}
+        spellCheck={false}
+      />
+    </div>
+  )
+}
 interface KeyValueEditorProps {
   items: KeyValue[]
   onChange: (items: KeyValue[]) => void
@@ -394,11 +452,10 @@ export function RequestPanel() {
               </div>
             )}
             {currentRequest.body.type !== 'none' && currentRequest.body.type !== 'graphql' && (
-              <textarea
-                className="w-full h-52 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
+              <SyntaxEditor
                 value={currentRequest.body.content}
-                onChange={(e) => updateRequest({ body: { ...currentRequest.body, content: e.target.value } })}
-                spellCheck={false}
+                onChange={(content) => updateRequest({ body: { ...currentRequest.body, content } })}
+                language={currentRequest.body.type === 'json' ? 'json' : 'text'}
               />
             )}
           </div>
