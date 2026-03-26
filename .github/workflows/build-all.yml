@@ -50,7 +50,6 @@ jobs:
         with:
           name: Restless-Mac-App
           path: |
-            release/*.dmg
             release/*.zip
 
       - name: Upload Windows Artifact
