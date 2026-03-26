@@ -40,6 +40,21 @@ function SyntaxEditor({ value, onChange, language }: { value: string, onChange: 
     }
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      const target = e.currentTarget
+      const start = target.selectionStart
+      const end = target.selectionEnd
+      const newValue = value.substring(0, start) + '  ' + value.substring(end)
+      onChange(newValue)
+      
+      requestAnimationFrame(() => {
+        target.selectionStart = target.selectionEnd = start + 2
+      })
+    }
+  }
+
   return (
     <div className="relative w-full h-52 bg-[#1e1e1e] rounded border border-gray-600 focus-within:border-blue-500 overflow-hidden font-mono text-xs">
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none" aria-hidden="true">
@@ -73,6 +88,7 @@ function SyntaxEditor({ value, onChange, language }: { value: string, onChange: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onScroll={handleScroll}
+        onKeyDown={handleKeyDown}
         spellCheck={false}
       />
     </div>
@@ -139,6 +155,24 @@ function KeyValueEditor({ items, onChange, placeholder = 'Key' }: KeyValueEditor
       </button>
     </div>
   )
+}
+
+const handleTabInTextarea = (
+  e: React.KeyboardEvent<HTMLTextAreaElement>,
+  currentValue: string,
+  onValueChange: (newVal: string) => void
+) => {
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    const target = e.currentTarget
+    const start = target.selectionStart
+    const end = target.selectionEnd
+    const newVal = currentValue.substring(0, start) + '  ' + currentValue.substring(end)
+    onValueChange(newVal)
+    requestAnimationFrame(() => {
+      target.selectionStart = target.selectionEnd = start + 2
+    })
+  }
 }
 
 export function RequestPanel() {
@@ -323,6 +357,7 @@ export function RequestPanel() {
     }
   }
 
+
   return (
     <div className="flex-1 flex flex-col h-full" onKeyDown={handleKeyDown}>
       <div className="p-3 border-b border-gray-700 flex items-center gap-2">
@@ -437,6 +472,7 @@ export function RequestPanel() {
                     className="w-full h-32 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                     value={currentRequest.body.graphql?.query || ''}
                     onChange={(e) => updateRequest({ body: { ...currentRequest.body, graphql: { query: e.target.value, variables: currentRequest.body.graphql?.variables || '{}' } } })}
+                    onKeyDown={(e) => handleTabInTextarea(e, currentRequest.body.graphql?.query || '', (val) => updateRequest({ body: { ...currentRequest.body, graphql: { query: val, variables: currentRequest.body.graphql?.variables || '{}' } } }))}
                     spellCheck={false}
                   />
                 </div>
@@ -446,6 +482,7 @@ export function RequestPanel() {
                     className="w-full h-20 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                     value={currentRequest.body.graphql?.variables || '{}'}
                     onChange={(e) => updateRequest({ body: { ...currentRequest.body, graphql: { query: currentRequest.body.graphql?.query || '', variables: e.target.value } } })}
+                    onKeyDown={(e) => handleTabInTextarea(e, currentRequest.body.graphql?.variables || '{}', (val) => updateRequest({ body: { ...currentRequest.body, graphql: { query: currentRequest.body.graphql?.query || '', variables: val } } }))}
                     spellCheck={false}
                   />
                 </div>
@@ -542,6 +579,7 @@ export function RequestPanel() {
                 className="w-full h-28 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                 value={currentRequest.script.pre}
                 onChange={(e) => updateRequest({ script: { ...currentRequest.script, pre: e.target.value } })}
+                onKeyDown={(e) => handleTabInTextarea(e, currentRequest.script.pre, (val) => updateRequest({ script: { ...currentRequest.script, pre: val } }))}
                 spellCheck={false}
               />
             </div>
@@ -551,6 +589,7 @@ export function RequestPanel() {
                 className="w-full h-28 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                 value={currentRequest.script.post}
                 onChange={(e) => updateRequest({ script: { ...currentRequest.script, post: e.target.value } })}
+                onKeyDown={(e) => handleTabInTextarea(e, currentRequest.script.post, (val) => updateRequest({ script: { ...currentRequest.script, post: val } }))}
                 spellCheck={false}
               />
             </div>

@@ -1,6 +1,6 @@
 {
   "name": "restless",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:win:arm": "npm run build && electron-builder --win --arm64",
     "electron:build:mac": "npm run build && electron-builder --mac",
     "electron:build:linux": "npm run build && electron-builder --linux"
   },
@@ -61,7 +62,7 @@
   "build": {
     "appId": "com.restless.app",
     "productName": "Restless",
-    "artifactName": "restless-setup.${ext}",
+    "artifactName": "restless-setup-${arch}.${ext}",
     "icon": "./public/logo.ico",
     "extraResources": [
       {
@@ -91,11 +92,27 @@
       "dist-electron/**/*"
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "icon": "./public/icon-512.png"
     },
     "mac": {
-      "target": "zip",
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "icon": "./public/icon-512.png"
     },
     "linux": {
