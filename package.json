@@ -1,6 +1,6 @@
 {
   "name": "restless",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
