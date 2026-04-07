@@ -9,7 +9,11 @@
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
+<<<<<<< HEAD
     "electron:build:win:arm": "npm run build && electron-builder --win --arm64",
+=======
+     "electron:build:win:arm": "npm run build && electron-builder --win --arm64",
+>>>>>>> a108b17 (chore: migrate postcss config to mjs and add multi-arch build support for Windows and macOS)
     "electron:build:mac": "npm run build && electron-builder --mac",
     "electron:build:linux": "npm run build && electron-builder --linux"
   },
@@ -92,7 +96,11 @@
       "dist-electron/**/*"
     ],
     "win": {
+<<<<<<< HEAD
       "target": [
+=======
+        "target": [
+>>>>>>> a108b17 (chore: migrate postcss config to mjs and add multi-arch build support for Windows and macOS)
         {
           "target": "nsis",
           "arch": [
@@ -104,7 +112,11 @@
       "icon": "./public/icon-512.png"
     },
     "mac": {
+<<<<<<< HEAD
       "target": [
+=======
+         "target": [
+>>>>>>> a108b17 (chore: migrate postcss config to mjs and add multi-arch build support for Windows and macOS)
         {
           "target": "zip",
           "arch": [
