@@ -166,6 +166,24 @@ function KeyValueEditor({ items, onChange, placeholder = 'Key' }: KeyValueEditor
   )
 }
 
+const handleTabInTextarea = (
+  e: React.KeyboardEvent<HTMLTextAreaElement>,
+  currentValue: string,
+  onValueChange: (newVal: string) => void
+) => {
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    const target = e.currentTarget
+    const start = target.selectionStart
+    const end = target.selectionEnd
+    const newVal = currentValue.substring(0, start) + '  ' + currentValue.substring(end)
+    onValueChange(newVal)
+    requestAnimationFrame(() => {
+      target.selectionStart = target.selectionEnd = start + 2
+    })
+  }
+}
+
 export function RequestPanel() {
   const { currentRequest, updateRequest, setTabResponse, clearTabResponse, setTabLoading, cancelRequest, createRequest, activeEnvironment, workspace, saveRequest, createCollection, tabResponses, activeTabId, isLoading } = useApp()
   const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'script'>('params')
@@ -378,6 +396,7 @@ export function RequestPanel() {
     }
   }
 
+
   return (
     <div className="flex-1 flex flex-col h-full" onKeyDown={handleKeyDown}>
       <div className="p-3 border-b border-gray-700 flex items-center gap-2">
@@ -504,6 +523,7 @@ export function RequestPanel() {
                     className="w-full h-32 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                     value={currentRequest.body.graphql?.query || ''}
                     onChange={(e) => updateRequest({ body: { ...currentRequest.body, graphql: { query: e.target.value, variables: currentRequest.body.graphql?.variables || '{}' } } })}
+                    onKeyDown={(e) => handleTabInTextarea(e, currentRequest.body.graphql?.query || '', (val) => updateRequest({ body: { ...currentRequest.body, graphql: { query: val, variables: currentRequest.body.graphql?.variables || '{}' } } }))}
                     spellCheck={false}
                   />
                 </div>
@@ -513,6 +533,7 @@ export function RequestPanel() {
                     className="w-full h-20 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                     value={currentRequest.body.graphql?.variables || '{}'}
                     onChange={(e) => updateRequest({ body: { ...currentRequest.body, graphql: { query: currentRequest.body.graphql?.query || '', variables: e.target.value } } })}
+                    onKeyDown={(e) => handleTabInTextarea(e, currentRequest.body.graphql?.variables || '{}', (val) => updateRequest({ body: { ...currentRequest.body, graphql: { query: currentRequest.body.graphql?.query || '', variables: val } } }))}
                     spellCheck={false}
                   />
                 </div>
@@ -609,6 +630,7 @@ export function RequestPanel() {
                 className="w-full h-28 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                 value={currentRequest.script.pre}
                 onChange={(e) => updateRequest({ script: { ...currentRequest.script, pre: e.target.value } })}
+                onKeyDown={(e) => handleTabInTextarea(e, currentRequest.script.pre, (val) => updateRequest({ script: { ...currentRequest.script, pre: val } }))}
                 spellCheck={false}
               />
             </div>
@@ -618,6 +640,7 @@ export function RequestPanel() {
                 className="w-full h-28 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
                 value={currentRequest.script.post}
                 onChange={(e) => updateRequest({ script: { ...currentRequest.script, post: e.target.value } })}
+                onKeyDown={(e) => handleTabInTextarea(e, currentRequest.script.post, (val) => updateRequest({ script: { ...currentRequest.script, post: val } }))}
                 spellCheck={false}
               />
             </div>
