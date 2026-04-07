@@ -92,11 +92,7 @@
       "dist-electron/**/*"
     ],
     "win": {
-<<<<<<< HEAD
       "target": [
-=======
-        "target": [
->>>>>>> a108b17 (chore: migrate postcss config to mjs and add multi-arch build support for Windows and macOS)
         {
           "target": "nsis",
           "arch": [
@@ -108,11 +104,7 @@
       "icon": "./public/icon-512.png"
     },
     "mac": {
-<<<<<<< HEAD
       "target": [
-=======
-         "target": [
->>>>>>> a108b17 (chore: migrate postcss config to mjs and add multi-arch build support for Windows and macOS)
         {
           "target": "zip",
           "arch": [
