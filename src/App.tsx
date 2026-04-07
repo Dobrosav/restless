@@ -6,6 +6,7 @@ import { ResponsePanel } from './components/ResponsePanel'
 import { EnvironmentManager } from './components/EnvironmentManager'
 import { GitPanel } from './components/GitPanel'
 import { GitConfigDialog } from './components/GitConfigDialog'
+import { JwtDecoderModal } from './components/JwtDecoderModal'
 import { Collection, Environment } from './types'
 import { useEffect, useState } from 'react'
 
@@ -130,6 +131,8 @@ function AppContent() {
             </div>
             <EnvironmentManager />
             <GitPanel onOpenConfig={() => setShowGitConfigDialog(true)} />
+            <div className="h-6 w-px bg-gray-700 mx-1"></div>
+            <JwtDecoderModal />
           </div>
           <div className="flex items-center gap-2">
             {isLoading && (

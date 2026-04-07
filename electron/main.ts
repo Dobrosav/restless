@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, nativeImage, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, nativeImage, Menu, MenuItem } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { randomUUID } from 'crypto'
@@ -116,6 +116,38 @@ function createWindow() {
     mainWindow?.show()
     if (isDev) {
       mainWindow?.webContents.openDevTools()
+    }
+  })
+
+  mainWindow.webContents.on('context-menu', (_, props) => {
+    const menu = new Menu()
+    let hasItems = false
+
+    if (props.isEditable) {
+      menu.append(new MenuItem({ label: 'Cut', role: 'cut' }))
+      menu.append(new MenuItem({ label: 'Copy', role: 'copy' }))
+      menu.append(new MenuItem({ label: 'Paste', role: 'paste' }))
+      menu.append(new MenuItem({ type: 'separator' }))
+      menu.append(new MenuItem({ label: 'Select All', role: 'selectAll' }))
+      hasItems = true
+    } else if (props.selectionText && props.selectionText.trim() !== '') {
+      menu.append(new MenuItem({ label: 'Copy', role: 'copy' }))
+      hasItems = true
+    }
+
+    if (isDev) {
+      if (hasItems) menu.append(new MenuItem({ type: 'separator' }))
+      menu.append(new MenuItem({
+        label: 'Inspect Element',
+        click: () => {
+          mainWindow?.webContents.inspectElement(props.x, props.y)
+        }
+      }))
+      hasItems = true
+    }
+
+    if (hasItems) {
+      menu.popup()
     }
   })
 
