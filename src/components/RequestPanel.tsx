@@ -31,12 +31,29 @@ interface KeyValueEditorProps {
   placeholder?: string
 }
 
+const SHARED_FONT_FAMILY = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+
 function SyntaxEditor({ value, onChange, language }: { value: string, onChange: (val: string) => void, language: string }) {
   const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
     const overlay = e.currentTarget.previousElementSibling as HTMLElement
     if (overlay) {
       overlay.scrollTop = e.currentTarget.scrollTop
       overlay.scrollLeft = e.currentTarget.scrollLeft
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      const target = e.currentTarget
+      const start = target.selectionStart
+      const end = target.selectionEnd
+      const newValue = value.substring(0, start) + '  ' + value.substring(end)
+      onChange(newValue)
+      
+      requestAnimationFrame(() => {
+        target.selectionStart = target.selectionEnd = start + 2
+      })
     }
   }
 
@@ -54,7 +71,11 @@ function SyntaxEditor({ value, onChange, language }: { value: string, onChange: 
             backgroundColor: 'transparent',
             fontSize: '12px',
             lineHeight: '1.5',
+            fontFamily: SHARED_FONT_FAMILY,
             boxSizing: 'border-box',
+          }}
+          codeTagProps={{
+            style: { fontFamily: SHARED_FONT_FAMILY }
           }}
           wrapLongLines={false}
         >
@@ -62,17 +83,21 @@ function SyntaxEditor({ value, onChange, language }: { value: string, onChange: 
         </SyntaxHighlighter>
       </div>
       <textarea
-        className="absolute inset-0 w-full h-full bg-transparent p-3 font-mono text-xs resize-none focus:outline-none"
+        className="absolute inset-0 w-full h-full bg-transparent p-3 resize-none focus:outline-none"
         style={{
+          fontFamily: SHARED_FONT_FAMILY,
+          fontSize: '12px',
           lineHeight: '1.5',
           color: 'transparent',
           caretColor: 'white',
           whiteSpace: 'pre',
+          tabSize: 2,
         }}
         wrap="off"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onScroll={handleScroll}
+        onKeyDown={handleKeyDown}
         spellCheck={false}
       />
     </div>
@@ -148,6 +173,7 @@ export function RequestPanel() {
   const [newCollectionName, setNewCollectionName] = useState('')
   const [showNewCollectionInput, setShowNewCollectionInput] = useState(false)
   const [showCurlModal, setShowCurlModal] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
   const urlInputRef = useRef<HTMLInputElement>(null)
   const responseRef = useRef(tabResponses[activeTabId || ''] || null)
   responseRef.current = activeTabId ? tabResponses[activeTabId] || null : null
@@ -163,6 +189,7 @@ export function RequestPanel() {
   }, [updateRequest, activeTabId, clearTabResponse])
 
   const handleSendRef = useRef<(() => Promise<void>) | null>(null)
+  const handleFormatRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -187,6 +214,10 @@ export function RequestPanel() {
         if (responseRef.current?.body) {
           navigator.clipboard.writeText(responseRef.current.body)
         }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault()
+        handleFormatRef.current?.()
       }
       if ((e.metaKey || e.ctrlKey) && e.key === '1') {
         e.preventDefault()
@@ -252,6 +283,30 @@ export function RequestPanel() {
     }
     return result
   }
+
+  const handleFormat = useCallback(() => {
+    if (!currentRequest) return
+    const formatJson = (str: string) => {
+      try { return JSON.stringify(JSON.parse(str), null, 2) } catch { return str }
+    }
+    
+    if (activeTab === 'body') {
+      if (currentRequest.body.type === 'json') {
+        const formatted = formatJson(currentRequest.body.content)
+        if (formatted !== currentRequest.body.content) {
+          updateRequest({ body: { ...currentRequest.body, content: formatted } })
+        }
+      } else if (currentRequest.body.type === 'graphql') {
+        if (currentRequest.body.graphql?.variables) {
+          const formatted = formatJson(currentRequest.body.graphql.variables)
+          if (formatted !== currentRequest.body.graphql.variables) {
+            updateRequest({ body: { ...currentRequest.body, graphql: { ...currentRequest.body.graphql, variables: formatted } } })
+          }
+        }
+      }
+    }
+  }, [activeTab, currentRequest, updateRequest])
+  handleFormatRef.current = handleFormat
 
   if (!currentRequest) {
     return (
@@ -414,20 +469,32 @@ export function RequestPanel() {
 
         {activeTab === 'body' && (
           <div className="space-y-2">
-            <div className="flex gap-2">
-              {(['none', 'json', 'text', 'form-data', 'x-www-form-urlencoded', 'graphql'] as const).map((type) => (
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                {(['none', 'json', 'text', 'form-data', 'x-www-form-urlencoded', 'graphql'] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => updateRequest({ body: { ...currentRequest.body, type, graphql: currentRequest.body.graphql || { query: '', variables: '{}' } } })}
+                    className={`px-2 py-1 text-xs rounded ${
+                      currentRequest.body.type === type
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 text-gray-300'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+              {(currentRequest.body.type === 'json' || currentRequest.body.type === 'graphql') && (
                 <button
-                  key={type}
-                  onClick={() => updateRequest({ body: { ...currentRequest.body, type, graphql: currentRequest.body.graphql || { query: '', variables: '{}' } } })}
-                  className={`px-2 py-1 text-xs rounded ${
-                    currentRequest.body.type === type
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300'
-                  }`}
+                  onClick={handleFormat}
+                  className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 flex items-center gap-1 bg-gray-700/50 hover:bg-gray-700 rounded transition-colors"
+                  title="Format JSON (Ctrl+Shift+F)"
                 >
-                  {type}
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
+                  Format
                 </button>
-              ))}
+              )}
             </div>
             {currentRequest.body.type === 'graphql' && (
               <div className="space-y-2">
@@ -706,15 +773,18 @@ export function RequestPanel() {
                </div>
                
                <div className="flex gap-2">
-                 <button
-                   onClick={() => {
-                     navigator.clipboard.writeText(generateCurl(currentRequest, activeEnvironment))
-                     alert('cURL command copied to clipboard!')
-                   }}
-                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium"
-                 >
-                   Copy to Clipboard
-                 </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(generateCurl(currentRequest, activeEnvironment))
+                      setCopySuccess(true)
+                      setTimeout(() => setCopySuccess(false), 2000)
+                    }}
+                    className={`flex-1 text-white px-3 py-2 rounded text-sm font-medium transition-colors ${
+                      copySuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {copySuccess ? 'Copied ✓' : 'Copy to Clipboard'}
+                  </button>
                  <button
                    onClick={() => setShowCurlModal(false)}
                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm font-medium"

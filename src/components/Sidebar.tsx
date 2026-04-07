@@ -59,7 +59,7 @@ function CollectionNode({
   deleteCollection: any,
   createCollection: any
 }) {
-  const isExpanded = expandedCollections[collection.id] !== false
+  const isExpanded = expandedCollections[collection.id] === true
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
 
