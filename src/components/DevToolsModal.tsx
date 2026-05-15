@@ -1,0 +1,343 @@
+import { useState } from 'react'
+import { generateModels, Language } from '../utils/jsonToModels'
+
+const LANGUAGES: Language[] = [
+  'TypeScript', 'Java', 'C#', 'Go', 'Python',
+  'Swift', 'Rust', 'Kotlin', 'Ruby', 'Dart',
+  'PHP', 'C++', 'Scala', 'GraphQL', 'Zod'
+]
+
+type ToolType = 'json-to-model' | 'base64' | 'url-encode' | 'uuid';
+
+export function DevToolsModal() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [activeTool, setActiveTool] = useState<ToolType>('json-to-model')
+  
+  // JSON to Model State
+  const [jsonInput, setJsonInput] = useState('')
+  const [rootClassName, setRootClassName] = useState('Root')
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('TypeScript')
+  const [generatedCode, setGeneratedCode] = useState('')
+  const [jsonError, setJsonError] = useState('')
+
+  // Base64 State
+  const [b64Input, setB64Input] = useState('')
+  const [b64Output, setB64Output] = useState('')
+  const [b64Mode, setB64Mode] = useState<'encode'|'decode'>('encode')
+
+  // URL Encode State
+  const [urlInput, setUrlInput] = useState('')
+  const [urlOutput, setUrlOutput] = useState('')
+  const [urlMode, setUrlMode] = useState<'encode'|'decode'>('encode')
+
+  // UUID State
+  const [uuids, setUuids] = useState<string[]>([])
+  const [uuidCount, setUuidCount] = useState(5)
+
+  // --- Handlers ---
+  const handleJsonConvert = (input: string, lang: Language, rootName: string) => {
+    setJsonInput(input)
+    setSelectedLanguage(lang)
+    setRootClassName(rootName)
+    setJsonError('')
+    
+    if (!input.trim()) {
+      setGeneratedCode('')
+      return
+    }
+
+    try {
+      const code = generateModels(input, rootName || 'Root', lang)
+      setGeneratedCode(code)
+    } catch (e: any) {
+      setGeneratedCode('')
+      setJsonError(e.message || 'Invalid JSON format')
+    }
+  }
+
+  const handleBase64 = (input: string, mode: 'encode'|'decode') => {
+    setB64Input(input)
+    setB64Mode(mode)
+    if (!input) {
+      setB64Output('')
+      return
+    }
+    try {
+      if (mode === 'encode') {
+        setB64Output(btoa(unescape(encodeURIComponent(input))))
+      } else {
+        setB64Output(decodeURIComponent(escape(atob(input))))
+      }
+    } catch (e) {
+      setB64Output('Error: Invalid input for ' + mode)
+    }
+  }
+
+  const handleUrlEncode = (input: string, mode: 'encode'|'decode') => {
+    setUrlInput(input)
+    setUrlMode(mode)
+    if (!input) {
+      setUrlOutput('')
+      return
+    }
+    try {
+      if (mode === 'encode') {
+        setUrlOutput(encodeURIComponent(input))
+      } else {
+        setUrlOutput(decodeURIComponent(input))
+      }
+    } catch (e) {
+      setUrlOutput('Error: Invalid input for ' + mode)
+    }
+  }
+
+  const generateUUIDs = () => {
+    const newUuids = Array.from({ length: uuidCount }, () => crypto.randomUUID());
+    setUuids(newUuids);
+  }
+
+  const copyToClipboard = (text: string) => {
+    if (text) navigator.clipboard.writeText(text)
+  }
+
+  // --- Renderers ---
+  const renderSidebar = () => (
+    <div className="w-48 bg-gray-900 border-r border-gray-700 flex flex-col p-2 space-y-1">
+      <button 
+        onClick={() => setActiveTool('json-to-model')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'json-to-model' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        JSON to Model
+      </button>
+      <button 
+        onClick={() => setActiveTool('base64')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'base64' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        Base64
+      </button>
+      <button 
+        onClick={() => setActiveTool('url-encode')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'url-encode' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        URL Encode
+      </button>
+      <button 
+        onClick={() => { setActiveTool('uuid'); if(uuids.length === 0) generateUUIDs(); }}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'uuid' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        UUID Generator
+      </button>
+    </div>
+  )
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-1.5 text-sm font-medium text-gray-300 hover:text-white px-2 py-1.5 rounded hover:bg-gray-700 transition"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-purple-400">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+        </svg>
+        <span className="hidden sm:inline">Dev Tools</span>
+      </button>
+
+      {isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-lg shadow-2xl border border-gray-600 flex flex-col w-[1100px] max-w-full h-[750px] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800/80">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-purple-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+                </svg>
+                Developer Tools
+              </h2>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-gray-400 hover:text-white text-2xl leading-none transition"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="flex flex-1 overflow-hidden">
+              {renderSidebar()}
+              
+              {/* Content Area */}
+              <div className="flex-1 flex overflow-hidden bg-[#1e1e1e]">
+                
+                {activeTool === 'json-to-model' && (
+                  <div className="flex flex-1 flex-col md:flex-row">
+                    <div className="w-full md:w-1/2 flex flex-col p-4 border-b md:border-b-0 md:border-r border-gray-700 bg-gray-900/30">
+                      <div className="flex justify-between mb-2">
+                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">JSON Input</label>
+                        <button 
+                          onClick={() => handleJsonConvert('', selectedLanguage, rootClassName)}
+                          className="text-[10px] text-gray-400 hover:text-gray-300"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <textarea
+                        value={jsonInput}
+                        onChange={(e) => handleJsonConvert(e.target.value, selectedLanguage, rootClassName)}
+                        placeholder="Paste JSON here..."
+                        className="w-full flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 leading-relaxed resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        spellCheck={false}
+                      />
+                      {jsonError && <p className="text-red-400 font-medium text-xs mt-3">{jsonError}</p>}
+                    </div>
+
+                    <div className="w-full md:w-1/2 flex flex-col p-4">
+                      <div className="flex flex-col gap-3 mb-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Generated Model</label>
+                          <button 
+                            onClick={() => copyToClipboard(generatedCode)}
+                            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">Root Name:</span>
+                            <input 
+                              type="text" 
+                              value={rootClassName}
+                              onChange={(e) => handleJsonConvert(jsonInput, selectedLanguage, e.target.value)}
+                              className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-purple-500 w-24"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">Language:</span>
+                            <select
+                              value={selectedLanguage}
+                              onChange={(e) => handleJsonConvert(jsonInput, e.target.value as Language, rootClassName)}
+                              className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-purple-500"
+                            >
+                              {LANGUAGES.map(lang => (
+                                <option key={lang} value={lang}>{lang}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-hidden flex flex-col">
+                        <pre className="flex-1 overflow-y-auto text-purple-300 bg-gray-900/50 border border-purple-900/30 p-3 rounded text-sm font-mono break-all whitespace-pre-wrap custom-scrollbar">
+                          {generatedCode || ' '}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(activeTool === 'base64' || activeTool === 'url-encode') && (() => {
+                  const inputVal = activeTool === 'base64' ? b64Input : urlInput;
+                  const outputVal = activeTool === 'base64' ? b64Output : urlOutput;
+                  const currentMode = activeTool === 'base64' ? b64Mode : urlMode;
+                  const handler = activeTool === 'base64' ? handleBase64 : handleUrlEncode;
+
+                  return (
+                    <div className="flex flex-1 flex-col p-6 gap-4">
+                      <div className="flex items-center gap-4 bg-gray-900 p-2 rounded-lg w-fit border border-gray-700">
+                        <button
+                          onClick={() => handler(inputVal, 'encode')}
+                          className={`px-4 py-1.5 rounded text-sm font-medium transition ${currentMode === 'encode' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                        >
+                          Encode
+                        </button>
+                        <button
+                          onClick={() => handler(inputVal, 'decode')}
+                          className={`px-4 py-1.5 rounded text-sm font-medium transition ${currentMode === 'decode' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                        >
+                          Decode
+                        </button>
+                      </div>
+
+                      <div className="flex flex-1 gap-4 flex-col md:flex-row">
+                        <div className="flex-1 flex flex-col">
+                          <label className="text-xs text-gray-400 font-bold uppercase tracking-wide mb-2">Input</label>
+                          <textarea
+                            value={inputVal}
+                            onChange={(e) => handler(e.target.value, currentMode)}
+                            placeholder={`Type text to ${currentMode}...`}
+                            className="flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                            spellCheck={false}
+                          />
+                        </div>
+                        <div className="flex-1 flex flex-col">
+                          <div className="flex justify-between items-center mb-2">
+                            <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Output</label>
+                            <button 
+                              onClick={() => copyToClipboard(outputVal)}
+                              className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <textarea
+                            value={outputVal}
+                            readOnly
+                            placeholder="Result..."
+                            className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded p-3 text-sm font-mono text-purple-300 resize-none focus:outline-none"
+                            spellCheck={false}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {activeTool === 'uuid' && (
+                  <div className="flex flex-1 flex-col p-6 gap-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <label className="text-sm text-gray-400">Generate count:</label>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          max="100" 
+                          value={uuidCount}
+                          onChange={(e) => setUuidCount(parseInt(e.target.value) || 1)}
+                          className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-purple-500"
+                        />
+                        <button 
+                          onClick={generateUUIDs}
+                          className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+                        >
+                          Generate
+                        </button>
+                      </div>
+                      <button 
+                        onClick={() => copyToClipboard(uuids.join('\n'))}
+                        className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+                      >
+                        Copy All
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-2 custom-scrollbar">
+                      {uuids.map((uuid, i) => (
+                        <div key={i} className="flex items-center justify-between group bg-gray-800/50 p-2 rounded border border-transparent hover:border-gray-600">
+                          <span className="font-mono text-gray-300 text-sm select-all">{uuid}</span>
+                          <button 
+                            onClick={() => copyToClipboard(uuid)}
+                            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white transition text-xs bg-gray-700 px-2 py-1 rounded"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}

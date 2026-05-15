@@ -1,6 +1,6 @@
 {
   "name": "restless",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -50,6 +50,7 @@
     "dompurify": "^3.3.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
+    "quicktype-core": "^23.2.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-syntax-highlighter": "^16.1.1",
