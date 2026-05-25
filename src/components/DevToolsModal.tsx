@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import md5 from 'md5'
 import { generateModels, Language } from '../utils/jsonToModels'
 
 const LANGUAGES: Language[] = [
@@ -7,7 +8,7 @@ const LANGUAGES: Language[] = [
   'PHP', 'C++', 'Scala', 'GraphQL', 'Zod'
 ]
 
-type ToolType = 'json-to-model' | 'base64' | 'url-encode' | 'uuid';
+type ToolType = 'json-to-model' | 'base64' | 'url-encode' | 'uuid' | 'regex-tester' | 'json-formatter' | 'epoch-converter' | 'hash-generator';
 
 export function DevToolsModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -33,6 +34,27 @@ export function DevToolsModal() {
   // UUID State
   const [uuids, setUuids] = useState<string[]>([])
   const [uuidCount, setUuidCount] = useState(5)
+
+  // Regex State
+  const [regexPattern, setRegexPattern] = useState('')
+  const [regexFlags, setRegexFlags] = useState('g')
+  const [regexTestString, setRegexTestString] = useState('')
+
+  // JSON Formatter State
+  const [jsonFormatterInput, setJsonFormatterInput] = useState('')
+  const [jsonFormatterOutput, setJsonFormatterOutput] = useState('')
+  const [jsonFormatterError, setJsonFormatterError] = useState('')
+
+  // Epoch Converter State
+  const [epochTimestampInput, setEpochTimestampInput] = useState(Math.floor(Date.now() / 1000).toString())
+  const [epochDateOutput, setEpochDateOutput] = useState('')
+  const [epochDateInput, setEpochDateInput] = useState(new Date().toISOString().slice(0, 16))
+  const [epochTimestampOutput, setEpochTimestampOutput] = useState('')
+
+  // Hash Generator State
+  const [hashInput, setHashInput] = useState('')
+  const [hashAlgo, setHashAlgo] = useState('SHA-256')
+  const [hashOutput, setHashOutput] = useState('')
 
   // --- Handlers ---
   const handleJsonConvert = (input: string, lang: Language, rootName: string) => {
@@ -100,6 +122,140 @@ export function DevToolsModal() {
     if (text) navigator.clipboard.writeText(text)
   }
 
+  // Regex Highlighting Helper
+  const renderRegexHighlight = () => {
+    if (!regexPattern) return <span className="text-gray-500 italic">Enter a pattern to see matches...</span>;
+    if (!regexTestString) return <span className="text-gray-500 italic">Enter a test string...</span>;
+
+    try {
+      const re = new RegExp(regexPattern, regexFlags);
+      // To prevent infinite loops with empty regex patterns
+      if (re.test('') && regexPattern.trim() === '') {
+        return <span className="text-gray-300">{regexTestString}</span>;
+      }
+
+      let matches: RegExpMatchArray[] = [];
+      if (!re.global) {
+        const m = regexTestString.match(re);
+        if (m && m.index !== undefined) {
+           matches.push(m as RegExpMatchArray);
+        }
+      } else {
+        matches = Array.from(regexTestString.matchAll(re));
+      }
+
+      if (matches.length === 0) {
+        return (
+           <div className="flex flex-col gap-2">
+             <div className="text-xs text-gray-500 mb-1">0 matches</div>
+             <div className="text-gray-300 leading-relaxed font-mono whitespace-pre-wrap">{regexTestString}</div>
+           </div>
+        );
+      }
+
+      const parts: React.ReactNode[] = [];
+      let lastIndex = 0;
+
+      for (let i = 0; i < matches.length; i++) {
+        const match = matches[i];
+        if (match.index === undefined) continue;
+        
+        // Add text before match
+        if (match.index > lastIndex) {
+          parts.push(<span key={`text-${lastIndex}`}>{regexTestString.substring(lastIndex, match.index)}</span>);
+        }
+        
+        // Add highlighted match
+        parts.push(
+          <mark key={`match-${match.index}-${i}`} className="bg-purple-600/60 text-purple-100 rounded-sm px-0.5">
+            {match[0]}
+          </mark>
+        );
+        
+        lastIndex = match.index + match[0].length;
+      }
+      
+      // Add remaining text
+      if (lastIndex < regexTestString.length) {
+        parts.push(<span key={`text-${lastIndex}`}>{regexTestString.substring(lastIndex)}</span>);
+      }
+
+      return (
+        <div className="flex flex-col gap-2">
+          <div className="text-xs text-purple-400 font-bold mb-1">{matches.length} match{matches.length !== 1 ? 'es' : ''} found</div>
+          <div className="text-gray-300 leading-relaxed font-mono whitespace-pre-wrap break-all">{parts}</div>
+        </div>
+      );
+    } catch (e: any) {
+      return <div className="text-red-400 text-sm font-medium bg-red-900/20 p-2 rounded border border-red-900/50">Error: {e.message}</div>;
+    }
+  }
+
+  // JSON Formatter logic
+  const handleJsonFormat = (mode: 'pretty' | 'minify') => {
+    try {
+      const parsed = JSON.parse(jsonFormatterInput);
+      setJsonFormatterOutput(JSON.stringify(parsed, null, mode === 'pretty' ? 2 : 0));
+      setJsonFormatterError('');
+    } catch (e: any) {
+      setJsonFormatterError(e.message || 'Invalid JSON format');
+    }
+  }
+
+  // Epoch logic
+  useEffect(() => {
+    if (!epochTimestampInput) {
+      setEpochDateOutput('');
+      return;
+    }
+    const val = parseInt(epochTimestampInput, 10);
+    if (!isNaN(val)) {
+      const ms = val < 10000000000 ? val * 1000 : val;
+      const d = new Date(ms);
+      if (!isNaN(d.getTime())) {
+        setEpochDateOutput(`${d.toString()}\nUTC: ${d.toUTCString()}`);
+      } else {
+        setEpochDateOutput('Invalid Date');
+      }
+    } else {
+      setEpochDateOutput('Invalid Number');
+    }
+  }, [epochTimestampInput]);
+
+  useEffect(() => {
+    if (!epochDateInput) {
+      setEpochTimestampOutput('');
+      return;
+    }
+    const d = new Date(epochDateInput);
+    if (!isNaN(d.getTime())) {
+      setEpochTimestampOutput(`Seconds: ${Math.floor(d.getTime() / 1000)}\nMilliseconds: ${d.getTime()}`);
+    } else {
+      setEpochTimestampOutput('Invalid Date');
+    }
+  }, [epochDateInput]);
+
+  // Hash logic
+  useEffect(() => {
+    if (!hashInput) {
+      setHashOutput('');
+      return;
+    }
+    
+    if (hashAlgo === 'MD5') {
+      setHashOutput(md5(hashInput));
+    } else {
+      const buffer = new TextEncoder().encode(hashInput);
+      crypto.subtle.digest(hashAlgo, buffer).then(hashBuffer => {
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        setHashOutput(hashHex);
+      }).catch(e => {
+        setHashOutput('Error generating hash');
+      });
+    }
+  }, [hashInput, hashAlgo]);
+
   // --- Renderers ---
   const renderSidebar = () => (
     <div className="w-48 bg-gray-900 border-r border-gray-700 flex flex-col p-2 space-y-1">
@@ -126,6 +282,30 @@ export function DevToolsModal() {
         className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'uuid' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         UUID Generator
+      </button>
+      <button 
+        onClick={() => setActiveTool('json-formatter')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'json-formatter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        JSON Formatter
+      </button>
+      <button 
+        onClick={() => setActiveTool('epoch-converter')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'epoch-converter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        Epoch Converter
+      </button>
+      <button 
+        onClick={() => setActiveTool('hash-generator')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'hash-generator' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        Hash Generator
+      </button>
+      <button 
+        onClick={() => setActiveTool('regex-tester')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'regex-tester' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        Regex Tester
       </button>
     </div>
   )
@@ -329,6 +509,210 @@ export function DevToolsModal() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeTool === 'regex-tester' && (
+                  <div className="flex flex-1 flex-col p-6 gap-4 overflow-hidden">
+                    {/* Pattern and Flags Input */}
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1 flex bg-gray-900 border border-gray-600 rounded focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500 transition overflow-hidden">
+                        <span className="text-gray-500 font-mono pl-3 py-2 select-none">/</span>
+                        <input
+                          type="text"
+                          value={regexPattern}
+                          onChange={(e) => setRegexPattern(e.target.value)}
+                          placeholder="expression"
+                          className="flex-1 bg-transparent border-none outline-none text-purple-300 font-mono px-1 py-2 text-sm"
+                          spellCheck={false}
+                        />
+                        <span className="text-gray-500 font-mono pr-1 py-2 select-none">/</span>
+                        <input
+                          type="text"
+                          value={regexFlags}
+                          onChange={(e) => setRegexFlags(e.target.value)}
+                          placeholder="flags"
+                          className="w-20 bg-gray-800 border-l border-gray-600 outline-none text-purple-300 font-mono px-2 py-2 text-sm"
+                          spellCheck={false}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-1 gap-4 flex-col md:flex-row min-h-0">
+                      {/* Test String */}
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide mb-2">Test String</label>
+                        <textarea
+                          value={regexTestString}
+                          onChange={(e) => setRegexTestString(e.target.value)}
+                          placeholder="Enter text to test here..."
+                          className="flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
+                          spellCheck={false}
+                        />
+                      </div>
+                      
+                      {/* Results */}
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide mb-2">Results</label>
+                        <div className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded p-4 overflow-y-auto custom-scrollbar">
+                          {renderRegexHighlight()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTool === 'json-formatter' && (
+                  <div className="flex flex-1 flex-col md:flex-row p-6 gap-4 overflow-hidden">
+                    <div className="w-full md:w-1/2 flex flex-col min-h-0">
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Raw JSON</label>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleJsonFormat('pretty')}
+                            className="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded transition"
+                          >
+                            Format (Pretty)
+                          </button>
+                          <button 
+                            onClick={() => handleJsonFormat('minify')}
+                            className="text-[10px] bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition"
+                          >
+                            Minify
+                          </button>
+                        </div>
+                      </div>
+                      <textarea
+                        value={jsonFormatterInput}
+                        onChange={(e) => setJsonFormatterInput(e.target.value)}
+                        placeholder="Paste unformatted JSON here..."
+                        className="flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
+                        spellCheck={false}
+                      />
+                      {jsonFormatterError && <p className="text-red-400 font-medium text-xs mt-2">{jsonFormatterError}</p>}
+                    </div>
+
+                    <div className="w-full md:w-1/2 flex flex-col min-h-0">
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Formatted Output</label>
+                        <button 
+                          onClick={() => copyToClipboard(jsonFormatterOutput)}
+                          className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <textarea
+                        value={jsonFormatterOutput}
+                        readOnly
+                        placeholder="Result will appear here..."
+                        className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded p-3 text-sm font-mono text-purple-300 resize-none focus:outline-none custom-scrollbar"
+                        spellCheck={false}
+                        wrap="off"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {activeTool === 'epoch-converter' && (
+                  <div className="flex flex-1 flex-col p-6 gap-8 overflow-y-auto custom-scrollbar">
+                    {/* Timestamp to Date */}
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-5 flex flex-col gap-4">
+                      <h3 className="text-sm text-purple-300 font-bold uppercase tracking-wide border-b border-gray-700 pb-2">Timestamp to Date</h3>
+                      <div className="flex gap-4 items-start">
+                        <div className="flex flex-col flex-1">
+                          <label className="text-xs text-gray-400 mb-1">Enter Timestamp (s or ms)</label>
+                          <input
+                            type="number"
+                            value={epochTimestampInput}
+                            onChange={(e) => setEpochTimestampInput(e.target.value)}
+                            className="bg-gray-800 border border-gray-600 rounded p-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+                        <div className="flex flex-col flex-[2]">
+                          <label className="text-xs text-gray-400 mb-1">Human Readable Date</label>
+                          <textarea
+                            value={epochDateOutput}
+                            readOnly
+                            rows={2}
+                            className="bg-gray-800/50 border border-gray-700 rounded p-2 text-sm text-purple-300 font-mono resize-none focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Date to Timestamp */}
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-5 flex flex-col gap-4">
+                      <h3 className="text-sm text-purple-300 font-bold uppercase tracking-wide border-b border-gray-700 pb-2">Date to Timestamp</h3>
+                      <div className="flex gap-4 items-start">
+                        <div className="flex flex-col flex-1">
+                          <label className="text-xs text-gray-400 mb-1">Enter Date & Time</label>
+                          <input
+                            type="datetime-local"
+                            value={epochDateInput}
+                            onChange={(e) => setEpochDateInput(e.target.value)}
+                            className="bg-gray-800 border border-gray-600 rounded p-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+                        <div className="flex flex-col flex-[2]">
+                          <label className="text-xs text-gray-400 mb-1">Unix Timestamp</label>
+                          <textarea
+                            value={epochTimestampOutput}
+                            readOnly
+                            rows={2}
+                            className="bg-gray-800/50 border border-gray-700 rounded p-2 text-sm text-purple-300 font-mono resize-none focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTool === 'hash-generator' && (
+                  <div className="flex flex-1 flex-col md:flex-row p-6 gap-4 overflow-hidden">
+                    <div className="w-full md:w-1/2 flex flex-col min-h-0">
+                      <label className="text-xs text-gray-400 font-bold uppercase tracking-wide mb-2">Input String</label>
+                      <textarea
+                        value={hashInput}
+                        onChange={(e) => setHashInput(e.target.value)}
+                        placeholder="Type text to hash..."
+                        className="flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
+                        spellCheck={false}
+                      />
+                    </div>
+                    <div className="w-full md:w-1/2 flex flex-col min-h-0 gap-4">
+                      <div className="flex flex-col">
+                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide mb-2">Algorithm</label>
+                        <select
+                          value={hashAlgo}
+                          onChange={(e) => setHashAlgo(e.target.value)}
+                          className="bg-gray-900 border border-gray-600 rounded p-2 text-sm text-gray-200 font-medium focus:outline-none focus:border-purple-500 w-full md:w-1/2"
+                        >
+                          <option value="MD5">MD5</option>
+                          <option value="SHA-1">SHA-1</option>
+                          <option value="SHA-256">SHA-256</option>
+                          <option value="SHA-384">SHA-384</option>
+                          <option value="SHA-512">SHA-512</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col flex-1 min-h-0">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Hash Result</label>
+                          <button 
+                            onClick={() => copyToClipboard(hashOutput)}
+                            className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                        <textarea
+                          value={hashOutput}
+                          readOnly
+                          placeholder="Hash will appear here..."
+                          className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded p-3 text-sm font-mono text-purple-300 resize-none focus:outline-none break-all"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}

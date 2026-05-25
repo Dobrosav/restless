@@ -11,6 +11,7 @@ A Postman alternative built with Electron, React, and TypeScript. Features Bruno
 - **Bruno Format**: Native .bru file support
 - **Postman Import/Export**: Full compatibility with Postman collections
 - **Non-blocking Requests**: Background HTTP execution with cancel support
+- **Resizable Layout**: Adjustable split pane between request and response panels
 - **Multi-platform**: Windows, macOS, Linux
 
 ## Prerequisites

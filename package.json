@@ -1,6 +1,6 @@
 {
   "name": "restless",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -27,6 +27,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/conf": "^2.1.0",
+    "@types/md5": "^2.3.6",
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -50,6 +51,7 @@
     "dompurify": "^3.3.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
+    "md5": "^2.3.0",
     "quicktype-core": "^23.2.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

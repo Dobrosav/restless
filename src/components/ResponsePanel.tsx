@@ -158,7 +158,7 @@ export const ResponsePanel = memo(function ResponsePanel({ tabId }: ResponsePane
 
   if (isLoading && !response) {
     return (
-      <div className="w-1/2 flex items-center justify-center">
+      <div className="w-full flex items-center justify-center border-l border-gray-700">
         <div className="text-gray-400">Sending request...</div>
       </div>
     )
@@ -166,7 +166,7 @@ export const ResponsePanel = memo(function ResponsePanel({ tabId }: ResponsePane
 
   if (!response) {
     return (
-      <div className="w-1/2 flex items-center justify-center">
+      <div className="w-full flex items-center justify-center border-l border-gray-700">
         <div className="text-gray-500 text-center">
           <p>No response yet</p>
           <p className="text-xs mt-1">Enter a URL and click Send</p>
@@ -176,7 +176,7 @@ export const ResponsePanel = memo(function ResponsePanel({ tabId }: ResponsePane
   }
 
   return (
-    <div className="w-1/2 flex flex-col h-full border-l border-gray-700">
+    <div className="w-full flex flex-col h-full border-l border-gray-700">
       <div className="p-3 border-b border-gray-700 flex items-center gap-4">
         <div className="flex items-center gap-2">
           <span className={`text-lg font-bold ${statusColor}`}>

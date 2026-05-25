@@ -115,6 +115,38 @@ function AppContent() {
     }
   }
 
+  const [responseWidth, setResponseWidth] = useState(() => {
+    const saved = localStorage.getItem('responsePanelWidth')
+    return saved ? parseInt(saved, 10) : 50
+  })
+
+  useEffect(() => {
+    localStorage.setItem('responsePanelWidth', responseWidth.toString())
+  }, [responseWidth])
+
+  const handleDrag = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.pageX
+    const startWidth = responseWidth
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.pageX - startX
+      const containerWidth = window.innerWidth
+      const deltaPercentage = (dx / containerWidth) * 100
+      let newWidth = startWidth - deltaPercentage
+      newWidth = Math.min(Math.max(newWidth, 20), 80)
+      setResponseWidth(newWidth)
+    }
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
+
   return (
     <div className="h-screen bg-gray-900 text-white flex">
       <Sidebar />
@@ -150,8 +182,18 @@ function AppContent() {
         </div>
         <TabsBar />
         <div className="flex-1 flex overflow-hidden">
-          <RequestPanel />
-          <ResponsePanel tabId={activeTabId} />
+          <div style={{ width: `${100 - responseWidth}%` }} className="flex overflow-hidden">
+            <RequestPanel />
+          </div>
+          
+          <div 
+            className="w-1 bg-gray-800 hover:bg-blue-500 cursor-col-resize z-10 transition-colors shrink-0"
+            onMouseDown={handleDrag}
+          />
+
+          <div style={{ width: `${responseWidth}%` }} className="flex overflow-hidden">
+            <ResponsePanel tabId={activeTabId} />
+          </div>
         </div>
       </div>
       <GitConfigDialog 
