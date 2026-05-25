@@ -167,6 +167,7 @@ function CollectionNode({
 
 export function Sidebar() {
   const { workspace, currentRequest, setCurrentRequest, createRequest, createCollection, deleteRequest, deleteCollection, openTab, refreshWorkspace } = useApp()
+  const [isMinimized, setIsMinimized] = useState(false)
   const [collectionsOpen, setCollectionsOpen] = useState(true)
   const [showNewCollection, setShowNewCollection] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
@@ -256,11 +257,22 @@ export function Sidebar() {
   }
 
   return (
-    <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
-      <div className="p-3 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          <img src="./logo.png" alt="Restless" className="h-[98px] -ml-3 w-auto object-contain" />
-          <div className="flex gap-1">
+    <div className={`relative transition-all duration-300 flex-shrink-0 ${isMinimized ? 'w-0' : 'w-64'}`}>
+      {isMinimized && (
+        <button
+          onClick={() => setIsMinimized(false)}
+          className="absolute left-0 top-1/2 -translate-y-1/2 bg-gray-800 border border-gray-700 border-l-0 rounded-r-md p-1.5 z-[100] text-gray-400 hover:text-white hover:bg-gray-700 shadow-lg"
+          title="Open Sidebar"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+        </button>
+      )}
+
+      <div className={`absolute top-0 left-0 h-full w-64 bg-gray-800 border-r border-gray-700 flex flex-col transition-transform duration-300 z-40 ${isMinimized ? '-translate-x-full' : 'translate-x-0'}`}>
+        <div className="p-3 border-b border-gray-700">
+          <div className="flex items-center justify-between">
+            <img src="./logo.png" alt="Restless" className="h-[98px] -ml-3 w-auto object-contain" />
+            <div className="flex items-center gap-1 flex-shrink-0">
             <div
               className="relative"
               onMouseEnter={() => {
@@ -272,7 +284,7 @@ export function Sidebar() {
               }}
             >
               <button
-                className="text-xs bg-gray-600 px-2 py-1 rounded hover:bg-gray-500 transition-colors"
+                className="text-xs bg-gray-600 px-2 py-1 rounded hover:bg-gray-500 transition-colors whitespace-nowrap"
               >
                 Import ▾
               </button>
@@ -295,9 +307,16 @@ export function Sidebar() {
             </div>
             <button
               onClick={createRequest}
-              className="text-xs bg-blue-600 px-2 py-1 rounded hover:bg-blue-700 transition-colors"
+              className="text-xs bg-blue-600 px-2 py-1 rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
             >
               + New
+            </button>
+            <button
+              onClick={() => setIsMinimized(true)}
+              className="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-700 transition-colors ml-1"
+              title="Minimize Sidebar"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </button>
           </div>
         </div>
@@ -422,6 +441,7 @@ export function Sidebar() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
