@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import md5 from 'md5'
-import * as curlconverter from 'curlconverter'
 import { generateModels, Language } from '../utils/jsonToModels'
 
 const LANGUAGES: Language[] = [
@@ -84,7 +83,7 @@ export function DevToolsModal() {
     }
   }
 
-  const handleCurlConvert = (input: string, target: string) => {
+  const handleCurlConvert = async (input: string, target: string) => {
     setCurlInput(input)
     setCurlTarget(target)
     setCurlError('')
@@ -95,13 +94,11 @@ export function DevToolsModal() {
     }
 
     try {
-      // @ts-ignore
-      const fn = curlconverter[target]
-      if (fn) {
-        const result = fn(input)
-        setCurlOutput(result)
+      const res = await window.electronAPI.curlConvert(input, target)
+      if (res.success) {
+        setCurlOutput(res.result || '')
       } else {
-        setCurlError(`Target ${target} not found`)
+        setCurlError(res.error || `Target ${target} not found`)
       }
     } catch (e: any) {
       setCurlOutput('')

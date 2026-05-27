@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto'
 import simpleGit, { SimpleGit } from 'simple-git'
 import axios from 'axios'
 import { autoUpdater } from 'electron-updater'
+import * as curlconverter from 'curlconverter'
 
 interface Config {
   gitUserName: string
@@ -434,6 +435,19 @@ ipcMain.handle('postman:import', async (_, collectionPath: string, postmanJsonSt
       success: false,
       error: String(error),
     }
+  }
+})
+
+ipcMain.handle('curl:convert', async (_, curlCommand: string, target: string) => {
+  try {
+    const fn = (curlconverter as any)[target]
+    if (fn) {
+      return { success: true, result: fn(curlCommand) }
+    } else {
+      return { success: false, error: `Target ${target} not found` }
+    }
+  } catch (e: any) {
+    return { success: false, error: e.message || 'Invalid cURL command' }
   }
 })
 
