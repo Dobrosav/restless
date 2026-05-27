@@ -106,7 +106,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    show: false,
+    show: true,
   })
 
   if (appIcon && !appIcon.isEmpty()) {
@@ -153,10 +153,14 @@ function createWindow() {
   })
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.loadURL('http://127.0.0.1:5173')
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('Failed to load:', errorDescription, '(', errorCode, ') at', validatedURL)
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -213,6 +217,8 @@ function setupAutoUpdater() {
 
   autoUpdater.checkForUpdates();
 }
+
+app.disableHardwareAcceleration();
 
 app.whenReady().then(() => {
   createWindow()
