@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import md5 from 'md5'
+import * as curlconverter from 'curlconverter'
 import { generateModels, Language } from '../utils/jsonToModels'
 
 const LANGUAGES: Language[] = [
@@ -8,7 +9,7 @@ const LANGUAGES: Language[] = [
   'PHP', 'C++', 'Scala', 'GraphQL', 'Zod'
 ]
 
-type ToolType = 'json-to-model' | 'base64' | 'url-encode' | 'uuid' | 'regex-tester' | 'json-formatter' | 'epoch-converter' | 'hash-generator';
+type ToolType = 'json-to-model' | 'base64' | 'url-encode' | 'uuid' | 'regex-tester' | 'json-formatter' | 'epoch-converter' | 'hash-generator' | 'curl-converter';
 
 export function DevToolsModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -20,6 +21,12 @@ export function DevToolsModal() {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('TypeScript')
   const [generatedCode, setGeneratedCode] = useState('')
   const [jsonError, setJsonError] = useState('')
+
+  // cURL Converter State
+  const [curlInput, setCurlInput] = useState('')
+  const [curlOutput, setCurlOutput] = useState('')
+  const [curlTarget, setCurlTarget] = useState('toNodeFetch')
+  const [curlError, setCurlError] = useState('')
 
   // Base64 State
   const [b64Input, setB64Input] = useState('')
@@ -74,6 +81,31 @@ export function DevToolsModal() {
     } catch (e: any) {
       setGeneratedCode('')
       setJsonError(e.message || 'Invalid JSON format')
+    }
+  }
+
+  const handleCurlConvert = (input: string, target: string) => {
+    setCurlInput(input)
+    setCurlTarget(target)
+    setCurlError('')
+    
+    if (!input.trim()) {
+      setCurlOutput('')
+      return
+    }
+
+    try {
+      // @ts-ignore
+      const fn = curlconverter[target]
+      if (fn) {
+        const result = fn(input)
+        setCurlOutput(result)
+      } else {
+        setCurlError(`Target ${target} not found`)
+      }
+    } catch (e: any) {
+      setCurlOutput('')
+      setCurlError(e.message || 'Invalid cURL command')
     }
   }
 
@@ -272,6 +304,12 @@ export function DevToolsModal() {
         Base64
       </button>
       <button 
+        onClick={() => setActiveTool('curl-converter')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'curl-converter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        cURL Converter
+      </button>
+      <button 
         onClick={() => setActiveTool('url-encode')}
         className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'url-encode' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
@@ -406,6 +444,73 @@ export function DevToolsModal() {
                       <div className="flex-1 overflow-hidden flex flex-col">
                         <pre className="flex-1 overflow-y-auto text-purple-300 bg-gray-900/50 border border-purple-900/30 p-3 rounded text-sm font-mono break-all whitespace-pre-wrap custom-scrollbar">
                           {generatedCode || ' '}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTool === 'curl-converter' && (
+                  <div className="flex flex-1 flex-col md:flex-row">
+                    <div className="w-full md:w-1/2 flex flex-col p-4 border-b md:border-b-0 md:border-r border-gray-700 bg-gray-900/30">
+                      <div className="flex justify-between mb-2">
+                        <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">cURL Input</label>
+                        <button 
+                          onClick={() => handleCurlConvert('', curlTarget)}
+                          className="text-[10px] text-gray-400 hover:text-gray-300"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <textarea
+                        value={curlInput}
+                        onChange={(e) => handleCurlConvert(e.target.value, curlTarget)}
+                        placeholder="Paste cURL command here..."
+                        className="w-full flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 leading-relaxed resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        spellCheck={false}
+                      />
+                      {curlError && <p className="text-red-400 font-medium text-xs mt-3">{curlError}</p>}
+                    </div>
+
+                    <div className="w-full md:w-1/2 flex flex-col p-4">
+                      <div className="flex flex-col gap-3 mb-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Generated Client Code</label>
+                          <button 
+                            onClick={() => copyToClipboard(curlOutput)}
+                            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">Target:</span>
+                          <select
+                            value={curlTarget}
+                            onChange={(e) => handleCurlConvert(curlInput, e.target.value)}
+                            className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-purple-500 max-w-xs"
+                          >
+                            <option value="toBrowser">Browser (fetch)</option>
+                            <option value="toNodeFetch">Node (fetch)</option>
+                            <option value="toNodeAxios">Node (Axios)</option>
+                            <option value="toPython">Python (requests)</option>
+                            <option value="toGo">Go</option>
+                            <option value="toJava">Java (HttpClient)</option>
+                            <option value="toJavaOkHttp">Java (OkHttp)</option>
+                            <option value="toKotlin">Kotlin</option>
+                            <option value="toCSharp">C# (HttpClient)</option>
+                            <option value="toPhp">PHP (cURL)</option>
+                            <option value="toPhpGuzzle">PHP (Guzzle)</option>
+                            <option value="toRuby">Ruby (Net::HTTP)</option>
+                            <option value="toRust">Rust (reqwest)</option>
+                            <option value="toSwift">Swift (URLSession)</option>
+                            <option value="toDart">Dart (http)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-hidden flex flex-col">
+                        <pre className="flex-1 overflow-y-auto text-purple-300 bg-gray-900/50 border border-purple-900/30 p-3 rounded text-sm font-mono break-all whitespace-pre-wrap custom-scrollbar">
+                          {curlOutput || ' '}
                         </pre>
                       </div>
                     </div>
