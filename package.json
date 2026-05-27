@@ -1,12 +1,12 @@
 {
   "name": "restless",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && tsc -p tsconfig.electron.json",
-    "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "electron:dev": "tsc -p tsconfig.electron.json && concurrently -k \"vite\" \"wait-on http-get://127.0.0.1:5173 && electron . --no-sandbox --disable-gpu\"",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
     "electron:build:win:arm": "npm run build && electron-builder --win --arm64",
@@ -38,16 +38,19 @@
     "concurrently": "^9.2.1",
     "electron": "^40.6.1",
     "electron-builder": "^26.8.1",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
+    "vitest": "^4.1.7",
     "wait-on": "^9.0.4"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "axios": "^1.13.6",
+    "curlconverter": "^4.12.0",
     "dompurify": "^3.3.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
@@ -63,6 +66,7 @@
     "dompurify": "^3.3.3"
   },
   "build": {
+    "npmRebuild": false,
     "appId": "com.restless.app",
     "productName": "Restless",
     "artifactName": "restless-setup-${arch}.${ext}",

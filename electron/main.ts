@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto'
 import simpleGit, { SimpleGit } from 'simple-git'
 import axios from 'axios'
 import { autoUpdater } from 'electron-updater'
+import * as curlconverter from 'curlconverter'
 
 interface Config {
   gitUserName: string
@@ -105,7 +106,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    show: false,
+    show: true,
   })
 
   if (appIcon && !appIcon.isEmpty()) {
@@ -152,10 +153,14 @@ function createWindow() {
   })
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.loadURL('http://127.0.0.1:5173')
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('Failed to load:', errorDescription, '(', errorCode, ') at', validatedURL)
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -212,6 +217,8 @@ function setupAutoUpdater() {
 
   autoUpdater.checkForUpdates();
 }
+
+app.disableHardwareAcceleration();
 
 app.whenReady().then(() => {
   createWindow()
@@ -434,6 +441,19 @@ ipcMain.handle('postman:import', async (_, collectionPath: string, postmanJsonSt
       success: false,
       error: String(error),
     }
+  }
+})
+
+ipcMain.handle('curl:convert', async (_, curlCommand: string, target: string) => {
+  try {
+    const fn = (curlconverter as any)[target]
+    if (fn) {
+      return { success: true, result: fn(curlCommand) }
+    } else {
+      return { success: false, error: `Target ${target} not found` }
+    }
+  } catch (e: any) {
+    return { success: false, error: e.message || 'Invalid cURL command' }
   }
 })
 
