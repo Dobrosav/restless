@@ -11,7 +11,9 @@
     "electron:build:win": "npm run build && electron-builder --win",
     "electron:build:win:arm": "npm run build && electron-builder --win --arm64",
     "electron:build:mac": "npm run build && electron-builder --mac",
-    "electron:build:linux": "npm run build && electron-builder --linux"
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "api",
