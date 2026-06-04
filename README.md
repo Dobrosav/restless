@@ -55,6 +55,23 @@ npm run electron:dev
 
 This opens the desktop application with the built frontend.
 
+## Testing
+
+The project uses **Vitest** for unit testing. The test suite covers core utilities like Bruno parser, Postman import/export, cURL import/export, code generators, and HTTP helpers.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npx vitest
+
+# Run tests and generate coverage report
+npm run test:coverage
+```
+
 ## Building for Production
 
 ### Windows (.exe)
