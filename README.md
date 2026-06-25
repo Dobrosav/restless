@@ -10,6 +10,7 @@ A Postman alternative built with Electron, React, and TypeScript. Features Bruno
 - **Response Viewer**: JSON formatting, headers, timing, size, syntax highlighting
 - **Bruno Format**: Native .bru file support
 - **Postman Import/Export**: Full compatibility with Postman collections
+- **Developer Tools**: Built-in utilities including Load Tester, JSON Formatter, Epoch Converter, Hash Generator, Base64 Encode/Decode, and Regex Tester
 - **Non-blocking Requests**: Background HTTP execution with cancel support
 - **Resizable Layout**: Adjustable split pane between request and response panels
 - **Multi-platform**: Windows, macOS, Linux
@@ -140,11 +141,13 @@ api-client/
 │   ├── components/    # React components
 │   │   ├── Sidebar.tsx       # Collection list
 │   │   ├── RequestPanel.tsx  # Request editor
-│   │   └── ResponsePanel.tsx # Response viewer
+│   │   ├── ResponsePanel.tsx # Response viewer
+│   │   └── DevToolsModal.tsx # Developer Tools (Load Tester, etc.)
 │   ├── lib/           # Core logic
 │   │   ├── httpClient.ts     # HTTP requests (axios)
-│   │   ├── bruParser.ts     # Bruno .bru format
-│   │   └── postmanImport.ts # Postman import/export
+│   │   ├── bruParser.ts      # Bruno .bru format
+│   │   ├── postmanImport.ts  # Postman import/export
+│   │   └── loadTestEngine.ts # Core load testing engine
 │   ├── stores/        # React context
 │   └── types/         # TypeScript definitions
 ├── dist/              # Vite build output
