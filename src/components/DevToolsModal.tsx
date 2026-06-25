@@ -1,6 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import md5 from 'md5'
 import { generateModels, Language } from '../utils/jsonToModels'
+import {
+  LoadTestTarget,
+  LoadTestConfig,
+  LoadTestSummary,
+  LoadTestProgress,
+  LoadTestRunner,
+  createLoadTestRunner,
+  HttpMethod as LTHttpMethod,
+} from '../lib/loadTestEngine'
 
 const LANGUAGES: Language[] = [
   'TypeScript', 'Java', 'C#', 'Go', 'Python',
@@ -8,7 +17,7 @@ const LANGUAGES: Language[] = [
   'PHP', 'C++', 'Scala', 'GraphQL', 'Zod'
 ]
 
-type ToolType = 'json-to-model' | 'base64' | 'url-encode' | 'uuid' | 'regex-tester' | 'json-formatter' | 'epoch-converter' | 'hash-generator' | 'curl-converter';
+type ToolType = 'json-to-model' | 'base64' | 'url-encode' | 'uuid' | 'regex-tester' | 'json-formatter' | 'epoch-converter' | 'hash-generator' | 'curl-converter' | 'load-tester';
 
 export function DevToolsModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -61,6 +70,56 @@ export function DevToolsModal() {
   const [hashInput, setHashInput] = useState('')
   const [hashAlgo, setHashAlgo] = useState('SHA-256')
   const [hashOutput, setHashOutput] = useState('')
+
+  // Load Tester State
+  const LT_METHODS: LTHttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
+  const [ltTargets, setLtTargets] = useState<LoadTestTarget[]>([
+    { id: crypto.randomUUID(), url: '', method: 'GET', headers: {}, body: '', weight: 100 },
+  ])
+  const [ltTotalRequests, setLtTotalRequests] = useState(100)
+  const [ltConcurrency, setLtConcurrency] = useState(10)
+  const [ltTimeout, setLtTimeout] = useState(30000)
+  const [ltRunning, setLtRunning] = useState(false)
+  const [ltProgress, setLtProgress] = useState<LoadTestProgress | null>(null)
+  const [ltSummary, setLtSummary] = useState<LoadTestSummary | null>(null)
+  const [ltResultsTab, setLtResultsTab] = useState<'overview' | 'per-target' | 'timeline'>('overview')
+  const ltRunnerRef = useRef<LoadTestRunner | null>(null)
+  const [ltExpandedHeaders, setLtExpandedHeaders] = useState<Set<string>>(new Set())
+
+  const toggleTargetHeaders = (targetId: string) => {
+    setLtExpandedHeaders(prev => {
+      const next = new Set(prev)
+      if (next.has(targetId)) next.delete(targetId)
+      else next.add(targetId)
+      return next
+    })
+  }
+
+  const updateTargetHeader = (targetId: string, oldKey: string, newKey: string, newValue: string) => {
+    setLtTargets(prev => prev.map(t => {
+      if (t.id !== targetId) return t
+      const h = { ...t.headers }
+      if (oldKey && oldKey !== newKey) delete h[oldKey]
+      if (newKey) h[newKey] = newValue
+      return { ...t, headers: h }
+    }))
+  }
+
+  const removeTargetHeader = (targetId: string, key: string) => {
+    setLtTargets(prev => prev.map(t => {
+      if (t.id !== targetId) return t
+      const h = { ...t.headers }
+      delete h[key]
+      return { ...t, headers: h }
+    }))
+  }
+
+  const addTargetHeader = (targetId: string) => {
+    setLtTargets(prev => prev.map(t => {
+      if (t.id !== targetId) return t
+      return { ...t, headers: { ...t.headers, '': '' } }
+    }))
+  }
 
   // --- Handlers ---
   const handleJsonConvert = (input: string, lang: Language, rootName: string) => {
@@ -341,6 +400,13 @@ export function DevToolsModal() {
         className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'regex-tester' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         Regex Tester
+      </button>
+      <div className="border-t border-gray-700 my-1" />
+      <button 
+        onClick={() => setActiveTool('load-tester')}
+        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'load-tester' ? 'bg-orange-900/50 text-orange-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+      >
+        ⚡ Load Tester
       </button>
     </div>
   )
@@ -818,6 +884,460 @@ export function DevToolsModal() {
                     </div>
                   </div>
                 )}
+
+                {activeTool === 'load-tester' && (() => {
+                  const addTarget = () => {
+                    setLtTargets(prev => [...prev, {
+                      id: crypto.randomUUID(),
+                      url: '',
+                      method: 'GET' as LTHttpMethod,
+                      headers: {},
+                      body: '',
+                      weight: 0,
+                    }])
+                  }
+
+                  const removeTarget = (id: string) => {
+                    if (ltTargets.length <= 1) return
+                    setLtTargets(prev => prev.filter(t => t.id !== id))
+                  }
+
+                  const updateTarget = (id: string, updates: Partial<LoadTestTarget>) => {
+                    setLtTargets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))
+                  }
+
+                  const distributeWeightsEvenly = () => {
+                    const w = Math.floor(100 / ltTargets.length)
+                    const remainder = 100 - w * ltTargets.length
+                    setLtTargets(prev => prev.map((t, i) => ({ ...t, weight: w + (i === 0 ? remainder : 0) })))
+                  }
+
+                  const startTest = async () => {
+                    const validTargets = ltTargets.filter(t => t.url.trim())
+                    if (validTargets.length === 0) return
+
+                    setLtRunning(true)
+                    setLtSummary(null)
+                    setLtProgress(null)
+
+                    const runner = createLoadTestRunner()
+                    ltRunnerRef.current = runner
+
+                    const config: LoadTestConfig = {
+                      targets: validTargets,
+                      totalRequests: ltTotalRequests,
+                      concurrency: ltConcurrency,
+                      rampUpSeconds: 0,
+                      timeoutMs: ltTimeout,
+                    }
+
+                    await runner.run(
+                      config,
+                      (progress) => setLtProgress(progress),
+                      (summary) => {
+                        setLtSummary(summary)
+                        setLtRunning(false)
+                        setLtResultsTab('overview')
+                      }
+                    )
+                  }
+
+                  const stopTest = () => {
+                    if (ltRunnerRef.current) {
+                      ltRunnerRef.current.cancel()
+                    }
+                    setLtRunning(false)
+                  }
+
+                  const formatMs = (ms: number) => ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
+                  const totalWeight = ltTargets.reduce((s, t) => s + t.weight, 0)
+
+                  return (
+                    <div className="flex flex-1 flex-col overflow-hidden">
+                      {/* Top: Scenario Builder */}
+                      <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                        {/* Config Bar */}
+                        <div className="flex items-center gap-4 mb-4 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-gray-500">Requests:</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={10000}
+                              value={ltTotalRequests}
+                              onChange={(e) => setLtTotalRequests(Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+                              disabled={ltRunning}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-gray-500">Concurrency:</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={200}
+                              value={ltConcurrency}
+                              onChange={(e) => setLtConcurrency(Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-16 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+                              disabled={ltRunning}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-gray-500">Timeout:</label>
+                            <select
+                              value={ltTimeout}
+                              onChange={(e) => setLtTimeout(parseInt(e.target.value))}
+                              className="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+                              disabled={ltRunning}
+                            >
+                              <option value={5000}>5s</option>
+                              <option value={10000}>10s</option>
+                              <option value={30000}>30s</option>
+                              <option value={60000}>60s</option>
+                            </select>
+                          </div>
+                          <div className="flex-1" />
+                          {!ltRunning ? (
+                            <button
+                              onClick={startTest}
+                              disabled={ltTargets.every(t => !t.url.trim())}
+                              className="bg-orange-600 hover:bg-orange-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-5 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5"
+                            >
+                              ⚡ Start Test
+                            </button>
+                          ) : (
+                            <button
+                              onClick={stopTest}
+                              className="bg-red-600 hover:bg-red-500 text-white px-5 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5"
+                            >
+                              ■ Stop
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Progress Bar */}
+                        {ltRunning && ltProgress && (
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                              <span>{ltProgress.completed} / {ltProgress.total} requests</span>
+                              <span>{ltProgress.currentRps} req/s</span>
+                            </div>
+                            <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-orange-500 to-yellow-400 h-full rounded-full transition-all duration-150"
+                                style={{ width: `${(ltProgress.completed / ltProgress.total) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Targets */}
+                        <div className="mb-3 flex items-center justify-between">
+                          <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Targets</label>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={distributeWeightsEvenly}
+                              className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded"
+                              disabled={ltRunning}
+                            >
+                              Even Weights
+                            </button>
+                            <button
+                              onClick={addTarget}
+                              className="text-[10px] text-orange-400 hover:text-orange-300 bg-orange-900/30 px-2 py-0.5 rounded"
+                              disabled={ltRunning}
+                            >
+                              + Add Target
+                            </button>
+                          </div>
+                        </div>
+
+                        {totalWeight !== 100 && ltTargets.length > 0 && (
+                          <div className="text-xs text-yellow-400 bg-yellow-900/20 border border-yellow-900/40 rounded px-3 py-1.5 mb-3">
+                            ⚠ Weights sum to {totalWeight}% (should be 100%)
+                          </div>
+                        )}
+
+                        <div className="space-y-2 mb-4">
+                          {ltTargets.map((target, idx) => (
+                            <div key={target.id} className="bg-gray-900 border border-gray-700 rounded-lg p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-[10px] text-gray-600 font-mono w-4">#{idx + 1}</span>
+                                <select
+                                  value={target.method}
+                                  onChange={(e) => updateTarget(target.id, { method: e.target.value as LTHttpMethod })}
+                                  className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs font-bold text-green-400 focus:outline-none focus:border-orange-500 w-20"
+                                  disabled={ltRunning}
+                                >
+                                  {LT_METHODS.map(m => (
+                                    <option key={m} value={m}>{m}</option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="text"
+                                  value={target.url}
+                                  onChange={(e) => updateTarget(target.id, { url: e.target.value })}
+                                  placeholder="https://api.example.com/endpoint"
+                                  className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 font-mono focus:outline-none focus:border-orange-500"
+                                  disabled={ltRunning}
+                                />
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={target.weight}
+                                    onChange={(e) => updateTarget(target.id, { weight: Math.max(0, parseInt(e.target.value) || 0) })}
+                                    className="w-14 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 text-center focus:outline-none focus:border-orange-500"
+                                    disabled={ltRunning}
+                                  />
+                                  <span className="text-[10px] text-gray-500">%</span>
+                                </div>
+                                <button
+                                  onClick={() => removeTarget(target.id)}
+                                  className="text-gray-600 hover:text-red-400 transition text-lg px-1"
+                                  disabled={ltRunning || ltTargets.length <= 1}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                              {/* Headers section */}
+                              <div className="mt-2">
+                                <button
+                                  onClick={() => toggleTargetHeaders(target.id)}
+                                  className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-300 uppercase transition"
+                                  disabled={ltRunning}
+                                >
+                                  <span className={`transition-transform inline-block ${ltExpandedHeaders.has(target.id) ? 'rotate-90' : ''}`}>▶</span>
+                                  Headers
+                                  {Object.keys(target.headers).filter(k => k).length > 0 && (
+                                    <span className="text-orange-400 font-normal normal-case ml-1">({Object.keys(target.headers).filter(k => k).length})</span>
+                                  )}
+                                </button>
+                                {ltExpandedHeaders.has(target.id) && (
+                                  <div className="mt-1.5 space-y-1">
+                                    {Object.entries(target.headers).map(([key, value], hIdx) => (
+                                      <div key={hIdx} className="flex items-center gap-1.5">
+                                        <input
+                                          type="text"
+                                          value={key}
+                                          onChange={(e) => updateTargetHeader(target.id, key, e.target.value, value)}
+                                          placeholder="Header name"
+                                          className="w-36 bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[11px] text-gray-300 font-mono focus:outline-none focus:border-orange-500"
+                                          disabled={ltRunning}
+                                        />
+                                        <span className="text-gray-600 text-[10px]">:</span>
+                                        <input
+                                          type="text"
+                                          value={value}
+                                          onChange={(e) => updateTargetHeader(target.id, key, key, e.target.value)}
+                                          placeholder="Value"
+                                          className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[11px] text-gray-300 font-mono focus:outline-none focus:border-orange-500"
+                                          disabled={ltRunning}
+                                        />
+                                        <button
+                                          onClick={() => removeTargetHeader(target.id, key)}
+                                          className="text-gray-600 hover:text-red-400 text-xs px-0.5 transition"
+                                          disabled={ltRunning}
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    ))}
+                                    <button
+                                      onClick={() => addTargetHeader(target.id)}
+                                      className="text-[10px] text-orange-400 hover:text-orange-300 transition"
+                                      disabled={ltRunning}
+                                    >
+                                      + Add Header
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                              {/* Body for non-GET methods */}
+                              {!['GET', 'HEAD'].includes(target.method) && (
+                                <div className="mt-2">
+                                  <label className="text-[10px] text-gray-500 uppercase">Body</label>
+                                  <textarea
+                                    value={target.body}
+                                    onChange={(e) => updateTarget(target.id, { body: e.target.value })}
+                                    placeholder='{"key": "value"}'
+                                    rows={2}
+                                    className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-xs font-mono text-gray-300 resize-none focus:outline-none focus:border-orange-500 mt-1"
+                                    disabled={ltRunning}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Results */}
+                        {ltSummary && (
+                          <div className="border-t border-gray-700 pt-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <h3 className="text-sm font-bold text-white">Results</h3>
+                              <div className="flex bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
+                                {(['overview', 'per-target', 'timeline'] as const).map(tab => (
+                                  <button
+                                    key={tab}
+                                    onClick={() => setLtResultsTab(tab)}
+                                    className={`px-3 py-1 text-xs font-medium transition ${
+                                      ltResultsTab === tab
+                                        ? 'bg-orange-900/50 text-orange-300'
+                                        : 'text-gray-400 hover:text-gray-200'
+                                    }`}
+                                  >
+                                    {tab === 'overview' ? 'Overview' : tab === 'per-target' ? 'Per Target' : 'Timeline'}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {ltResultsTab === 'overview' && (
+                              <div className="space-y-3">
+                                {/* Summary Cards */}
+                                <div className="grid grid-cols-4 gap-3">
+                                  <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-center">
+                                    <div className="text-lg font-bold text-white">{ltSummary.requestsPerSecond}</div>
+                                    <div className="text-[10px] text-gray-500 uppercase">Req/s</div>
+                                  </div>
+                                  <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-center">
+                                    <div className="text-lg font-bold text-green-400">{ltSummary.successCount}</div>
+                                    <div className="text-[10px] text-gray-500 uppercase">Success</div>
+                                  </div>
+                                  <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-center">
+                                    <div className={`text-lg font-bold ${ltSummary.errorCount > 0 ? 'text-red-400' : 'text-gray-400'}`}>{ltSummary.errorCount}</div>
+                                    <div className="text-[10px] text-gray-500 uppercase">Errors</div>
+                                  </div>
+                                  <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-center">
+                                    <div className="text-lg font-bold text-orange-300">{formatMs(ltSummary.elapsedMs)}</div>
+                                    <div className="text-[10px] text-gray-500 uppercase">Duration</div>
+                                  </div>
+                                </div>
+
+                                {/* Response Time Table */}
+                                <div className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="border-b border-gray-700">
+                                        <th className="text-left px-3 py-2 text-gray-500 font-medium uppercase">Metric</th>
+                                        <th className="text-right px-3 py-2 text-gray-500 font-medium uppercase">Value</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {[
+                                        ['Avg Response Time', formatMs(ltSummary.avgResponseTime)],
+                                        ['Min Response Time', formatMs(ltSummary.minResponseTime)],
+                                        ['Max Response Time', formatMs(ltSummary.maxResponseTime)],
+                                        ['P50 (Median)', formatMs(ltSummary.p50)],
+                                        ['P95', formatMs(ltSummary.p95)],
+                                        ['P99', formatMs(ltSummary.p99)],
+                                        ['Total Requests', ltSummary.totalRequests.toString()],
+                                        ['Error Rate', `${ltSummary.totalRequests > 0 ? ((ltSummary.errorCount / ltSummary.totalRequests) * 100).toFixed(1) : 0}%`],
+                                      ].map(([label, value]) => (
+                                        <tr key={label} className="border-b border-gray-800 last:border-b-0">
+                                          <td className="px-3 py-1.5 text-gray-400">{label}</td>
+                                          <td className="px-3 py-1.5 text-right text-gray-200 font-mono">{value}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+
+                                {/* Status Distribution */}
+                                <div className="bg-gray-900 border border-gray-700 rounded-lg p-3">
+                                  <div className="text-[10px] text-gray-500 uppercase font-bold mb-2">Status Codes</div>
+                                  <div className="flex gap-2 flex-wrap">
+                                    {Object.entries(ltSummary.statusDistribution).sort(([a], [b]) => Number(a) - Number(b)).map(([status, count]) => {
+                                      const s = Number(status)
+                                      const color = s === 0 ? 'text-red-400 bg-red-900/30 border-red-900/50'
+                                        : s < 300 ? 'text-green-400 bg-green-900/30 border-green-900/50'
+                                        : s < 400 ? 'text-yellow-400 bg-yellow-900/30 border-yellow-900/50'
+                                        : 'text-red-400 bg-red-900/30 border-red-900/50'
+                                      return (
+                                        <div key={status} className={`px-2.5 py-1 rounded border text-xs font-mono font-medium ${color}`}>
+                                          {s === 0 ? 'ERR' : status}: {count}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {ltResultsTab === 'per-target' && (
+                              <div className="space-y-3">
+                                {ltSummary.perTarget.map((pt) => (
+                                  <div key={pt.targetId} className="bg-gray-900 border border-gray-700 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-xs font-bold text-green-400">{pt.targetMethod}</span>
+                                      <span className="text-xs text-gray-300 font-mono truncate">{pt.targetUrl}</span>
+                                      <span className="ml-auto text-[10px] text-gray-500">{pt.totalRequests} reqs</span>
+                                    </div>
+                                    <div className="grid grid-cols-6 gap-2 text-center">
+                                      {[
+                                        ['Avg', formatMs(pt.avgResponseTime)],
+                                        ['Min', formatMs(pt.minResponseTime)],
+                                        ['Max', formatMs(pt.maxResponseTime)],
+                                        ['P50', formatMs(pt.p50)],
+                                        ['P95', formatMs(pt.p95)],
+                                        ['Errors', pt.errorCount.toString()],
+                                      ].map(([label, val]) => (
+                                        <div key={label}>
+                                          <div className="text-xs font-mono text-gray-200">{val}</div>
+                                          <div className="text-[9px] text-gray-600 uppercase">{label}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {ltResultsTab === 'timeline' && (
+                              <div className="bg-gray-900 border border-gray-700 rounded-lg p-3">
+                                <div className="text-[10px] text-gray-500 uppercase font-bold mb-2">Response Time Over Requests</div>
+                                {ltSummary.timeline.length > 0 && (() => {
+                                  const maxTime = Math.max(...ltSummary.timeline.map(t => t.responseTime), 1)
+                                  const barWidth = Math.max(1, Math.floor(600 / ltSummary.timeline.length))
+                                  const chartHeight = 120
+                                  return (
+                                    <div className="overflow-x-auto custom-scrollbar">
+                                      <svg width={Math.max(600, ltSummary.timeline.length * barWidth)} height={chartHeight + 20} className="block">
+                                        {ltSummary.timeline.map((point, i) => {
+                                          const h = (point.responseTime / maxTime) * chartHeight
+                                          const isError = point.status === 0 || point.status >= 400
+                                          return (
+                                            <rect
+                                              key={i}
+                                              x={i * barWidth}
+                                              y={chartHeight - h}
+                                              width={Math.max(1, barWidth - 1)}
+                                              height={h}
+                                              fill={isError ? '#f87171' : '#fb923c'}
+                                              opacity={0.8}
+                                            >
+                                              <title>#{i + 1}: {point.responseTime}ms (HTTP {point.status})</title>
+                                            </rect>
+                                          )
+                                        })}
+                                        {/* Axis labels */}
+                                        <text x={0} y={chartHeight + 14} fill="#6b7280" fontSize={9}>{formatMs(0)}</text>
+                                        <text x={0} y={10} fill="#6b7280" fontSize={9}>{formatMs(maxTime)}</text>
+                                      </svg>
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 
               </div>
             </div>
