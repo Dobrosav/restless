@@ -67,3 +67,21 @@ Since all your collections and requests are just files on your computer, Restles
 * **Commit:** Type a message and hit "Commit" to save the revision locally.
 * **Push/Pull:** Synchronize directly with your remote repository (e.g., GitHub, GitLab).
 * **Configure Git:** Click the ⚙️ gear icon in the top right corner to set your Git `User Name` and `User Email`.
+
+## 7. Developer Tools & Load Tester
+
+Restless includes a suite of built-in developer tools to assist you with common API development tasks without leaving the application.
+
+* **Accessing Tools:** Click the 🛠️ **Tools** button in the top menu to open the Developer Tools modal.
+* **Load Tester:** Allows you to stress-test your APIs directly from Restless.
+  * **Targets:** Add multiple endpoints, methods, and payloads to test simultaneously.
+  * **Weights:** Distribute traffic by assigning percentage weights to each target.
+  * **Concurrency & Total Requests:** Configure how many requests to send and how many should run in parallel.
+  * **Results & Metrics:** View real-time request counts, error rates, average latency, P50, and P95 response times.
+* **Other Built-in Utilities:**
+  * **JSON Formatter:** Prettify or minify JSON payloads.
+  * **Base64 Converter:** Encode or decode text/data.
+  * **Epoch Converter:** Easily translate Unix timestamps to human-readable dates.
+  * **Hash Generator:** Generate MD5, SHA-1, SHA-256 hashes on the fly.
+  * **Regex Tester:** Evaluate regular expressions against text.
+  * **cURL Converter:** Convert requests into executable cURL commands.
