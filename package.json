@@ -1,6 +1,6 @@
 {
   "name": "restless",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -76,6 +76,10 @@
     "artifactName": "restless-setup-${arch}.${ext}",
     "icon": "./public/logo.ico",
     "extraResources": [
+      {
+        "from": "public/icon-512.png",
+        "to": "icon-512.png"
+      },
       {
         "from": "public/logo.png",
         "to": "logo.png"

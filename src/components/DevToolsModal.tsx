@@ -99,8 +99,10 @@ export function DevToolsModal() {
     setLtTargets(prev => prev.map(t => {
       if (t.id !== targetId) return t
       const h = { ...t.headers }
-      if (oldKey && oldKey !== newKey) delete h[oldKey]
-      if (newKey) h[newKey] = newValue
+      if (oldKey !== newKey) {
+        delete h[oldKey]
+      }
+      h[newKey] = newValue
       return { ...t, headers: h }
     }))
   }
@@ -902,6 +904,17 @@ export function DevToolsModal() {
                     setLtTargets(prev => prev.filter(t => t.id !== id))
                   }
 
+                  const duplicateTarget = (id: string) => {
+                    const targetToClone = ltTargets.find(t => t.id === id)
+                    if (targetToClone) {
+                      setLtTargets(prev => [...prev, {
+                        ...targetToClone,
+                        id: crypto.randomUUID(),
+                        headers: { ...targetToClone.headers }
+                      }])
+                    }
+                  }
+
                   const updateTarget = (id: string, updates: Partial<LoadTestTarget>) => {
                     setLtTargets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))
                   }
@@ -949,7 +962,42 @@ export function DevToolsModal() {
                     setLtRunning(false)
                   }
 
-                  const formatMs = (ms: number) => ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
+                  const exportToCsv = () => {
+                    if (!ltSummary) return
+                    
+                    const rows = [
+                      ['Target ID', 'URL', 'Method', 'Total Requests', 'Success', 'Errors', 'Avg Time (ms)', 'Min Time (ms)', 'Max Time (ms)', 'P50 (ms)', 'P95 (ms)']
+                    ]
+
+                    ltSummary.perTarget.forEach(pt => {
+                      rows.push([
+                        pt.targetId,
+                        pt.targetUrl,
+                        pt.targetMethod,
+                        pt.totalRequests.toString(),
+                        pt.successCount.toString(),
+                        pt.errorCount.toString(),
+                        pt.avgResponseTime.toString(),
+                        pt.minResponseTime.toString(),
+                        pt.maxResponseTime.toString(),
+                        pt.p50.toString(),
+                        pt.p95.toString()
+                      ])
+                    })
+
+                    const csvContent = rows.map(e => e.map(i => `"${i.replace(/"/g, '""')}"`).join(",")).join("\n")
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+                    const url = URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.setAttribute('href', url)
+                    link.setAttribute('download', `load-test-results-${Date.now()}.csv`)
+                    link.style.visibility = 'hidden'
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                  }
+
+                  const formatMs = (ms: number) => ms < 1000 ? `${Number(ms.toFixed(2))}ms` : `${(ms / 1000).toFixed(2)}s`
                   const totalWeight = ltTargets.reduce((s, t) => s + t.weight, 0)
 
                   return (
@@ -1092,14 +1140,23 @@ export function DevToolsModal() {
                                     disabled={ltRunning}
                                   />
                                   <span className="text-[10px] text-gray-500">%</span>
+                                  <button
+                                    onClick={() => duplicateTarget(target.id)}
+                                    className="text-gray-600 hover:text-orange-400 transition text-lg px-1"
+                                    disabled={ltRunning}
+                                    title="Duplicate Target"
+                                  >
+                                    ⧉
+                                  </button>
+                                  <button
+                                    onClick={() => removeTarget(target.id)}
+                                    className="text-gray-600 hover:text-red-400 transition text-lg px-1"
+                                    disabled={ltRunning || ltTargets.length <= 1}
+                                    title="Remove Target"
+                                  >
+                                    ×
+                                  </button>
                                 </div>
-                                <button
-                                  onClick={() => removeTarget(target.id)}
-                                  className="text-gray-600 hover:text-red-400 transition text-lg px-1"
-                                  disabled={ltRunning || ltTargets.length <= 1}
-                                >
-                                  ×
-                                </button>
                               </div>
                               {/* Headers section */}
                               <div className="mt-2">
@@ -1192,6 +1249,13 @@ export function DevToolsModal() {
                                   </button>
                                 ))}
                               </div>
+                              <div className="flex-1" />
+                              <button
+                                onClick={exportToCsv}
+                                className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1 rounded text-xs font-medium transition flex items-center gap-1.5 border border-gray-600"
+                              >
+                                ⬇ Export CSV
+                              </button>
                             </div>
 
                             {ltResultsTab === 'overview' && (
