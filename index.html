@@ -5,16 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' blob: 'wasm-unsafe-eval';
+      script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval';
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: blob:;
       font-src 'self' data:;
-      connect-src 'self' ws://localhost:* http://localhost:* https:;
+      connect-src * ws://* http://* https://* data: blob: 'unsafe-inline';
       worker-src blob:;
     " />
     <title>Restless</title>
   </head>
   <body>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

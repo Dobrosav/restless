@@ -95,15 +95,24 @@ async function sendSingleRequest(
   const startTime = performance.now()
   const timestamp = Date.now()
 
-  let url = target.url
+  let url = target.url.trim()
   if (url && !/^https?:\/\//i.test(url)) {
     url = 'http://' + url
   }
 
   try {
+    const cleanHeaders: Record<string, string> = {}
+    for (const [k, v] of Object.entries(target.headers)) {
+      const key = k.trim()
+      const value = typeof v === 'string' ? v.trim() : v
+      if (key) {
+        cleanHeaders[key] = value
+      }
+    }
+
     const fetchOptions: RequestInit = {
       method: target.method,
-      headers: target.headers,
+      headers: cleanHeaders,
       signal: abortSignal,
     }
 
@@ -136,6 +145,7 @@ async function sendSingleRequest(
       size: new Blob([body]).size,
     }
   } catch (error: any) {
+    console.error("Load Test Request Failed:", error);
     const endTime = performance.now()
     return {
       targetId: target.id,
