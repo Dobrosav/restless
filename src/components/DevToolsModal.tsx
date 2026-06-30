@@ -1013,7 +1013,7 @@ export function DevToolsModal() {
                               min={1}
                               max={10000}
                               value={ltTotalRequests}
-                              onChange={(e) => setLtTotalRequests(Math.max(1, parseInt(e.target.value) || 1))}
+                              onChange={(e) => setLtTotalRequests(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
                               className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
                               disabled={ltRunning}
                             />
@@ -1025,7 +1025,7 @@ export function DevToolsModal() {
                               min={1}
                               max={200}
                               value={ltConcurrency}
-                              onChange={(e) => setLtConcurrency(Math.max(1, parseInt(e.target.value) || 1))}
+                              onChange={(e) => setLtConcurrency(Math.min(200, Math.max(1, parseInt(e.target.value) || 1)))}
                               className="w-16 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
                               disabled={ltRunning}
                             />
@@ -1135,7 +1135,7 @@ export function DevToolsModal() {
                                     min={0}
                                     max={100}
                                     value={target.weight}
-                                    onChange={(e) => updateTarget(target.id, { weight: Math.max(0, parseInt(e.target.value) || 0) })}
+                                    onChange={(e) => updateTarget(target.id, { weight: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })}
                                     className="w-14 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 text-center focus:outline-none focus:border-orange-500"
                                     disabled={ltRunning}
                                   />
