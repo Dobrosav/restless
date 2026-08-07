@@ -11,7 +11,7 @@ SyntaxHighlighter.registerLanguage('json', json)
 
 const httpClient = createHttpClient()
 
-const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'WS', 'GRAPHQL']
+const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'WS', 'GRAPHQL', 'GRPC']
 
 const METHOD_COLORS: Record<HttpMethod, string> = {
   GET: 'text-green-400',
@@ -23,6 +23,7 @@ const METHOD_COLORS: Record<HttpMethod, string> = {
   OPTIONS: 'text-gray-400',
   WS: 'text-cyan-400',
   GRAPHQL: 'text-pink-400',
+  GRPC: 'text-orange-400',
 }
 
 interface KeyValueEditorProps {
@@ -184,9 +185,148 @@ const handleTabInTextarea = (
   }
 }
 
+const defaultGrpcConfig: import('../types').GrpcConfig = {
+  proto: '',
+  service: '',
+  method: '',
+  message: '{}',
+  metadata: [],
+  callType: 'unary',
+  tls: false,
+}
+
+interface GrpcPanelProps {
+  grpc: import('../types').GrpcConfig
+  onChange: (grpc: import('../types').GrpcConfig) => void
+}
+
+function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
+  const update = (patch: Partial<import('../types').GrpcConfig>) => onChange({ ...grpc, ...patch })
+
+  return (
+    <div className="space-y-4">
+      {/* Call type + TLS row */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-400 whitespace-nowrap">Call Type</label>
+          <select
+            value={grpc.callType}
+            onChange={(e) => update({ callType: e.target.value as import('../types').GrpcCallType })}
+            className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+          >
+            <option value="unary">Unary</option>
+            <option value="server_streaming">Server Streaming</option>
+          </select>
+        </div>
+        <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-gray-400">
+          <input
+            type="checkbox"
+            checked={grpc.tls}
+            onChange={(e) => update({ tls: e.target.checked })}
+            className="w-3.5 h-3.5 rounded"
+          />
+          TLS / SSL
+        </label>
+        {grpc.tls && (
+          <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-yellow-500" title="Ignoriši greške certifikata (samo za development)">
+            <input
+              type="checkbox"
+              checked={grpc.skipVerify || false}
+              onChange={(e) => update({ skipVerify: e.target.checked })}
+              className="w-3.5 h-3.5 rounded"
+            />
+            Skip verify ⚠️
+          </label>
+        )}
+      </div>
+
+      {/* Service + Method */}
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label className="text-xs text-gray-400 block mb-1">Service</label>
+          <input
+            type="text"
+            value={grpc.service}
+            onChange={(e) => update({ service: e.target.value })}
+            placeholder="e.g. helloworld.Greeter  or  Greeter"
+            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white font-mono focus:outline-none focus:border-orange-500"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="text-xs text-gray-400 block mb-1">Method</label>
+          <input
+            type="text"
+            value={grpc.method}
+            onChange={(e) => update({ method: e.target.value })}
+            placeholder="e.g. SayHello"
+            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white font-mono focus:outline-none focus:border-orange-500"
+          />
+        </div>
+      </div>
+
+      {/* Request Message */}
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">Request Message <span className="text-gray-500">(JSON)</span></label>
+        <SyntaxEditor
+          value={grpc.message}
+          onChange={(val) => update({ message: val })}
+          language="json"
+        />
+      </div>
+
+      {/* Proto Definition */}
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">
+          Proto Definition
+          <span className="text-gray-600 ml-1">(paste .proto content)</span>
+        </label>
+        <textarea
+          value={grpc.proto}
+          onChange={(e) => update({ proto: e.target.value })}
+          onKeyDown={(e) => handleTabInTextarea(e, grpc.proto, (val) => update({ proto: val }))}
+          placeholder={`syntax = "proto3";\n\npackage helloworld;\n\nservice Greeter {\n  rpc SayHello (HelloRequest) returns (HelloReply);\n}\n\nmessage HelloRequest {\n  string name = 1;\n}\n\nmessage HelloReply {\n  string message = 1;\n}`}
+          className="w-full h-52 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-orange-500"
+          spellCheck={false}
+        />
+      </div>
+
+      {/* Metadata */}
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">Metadata <span className="text-gray-600">(gRPC headers)</span></label>
+        <KeyValueEditor
+          items={grpc.metadata}
+          onChange={(metadata) => update({ metadata })}
+          placeholder="Key"
+        />
+      </div>
+
+      {/* CA Certificate — only shown when TLS is on */}
+      {grpc.tls && (
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">
+            CA Certificate
+            <span className="text-gray-600 ml-1">(PEM — za self-signed certifikate)</span>
+          </label>
+          <textarea
+            value={grpc.caCert || ''}
+            onChange={(e) => update({ caCert: e.target.value || undefined })}
+            onKeyDown={(e) => handleTabInTextarea(e, grpc.caCert || '', (val) => update({ caCert: val || undefined }))}
+            placeholder={'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----'}
+            className="w-full h-32 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-orange-500"
+            spellCheck={false}
+          />
+          <p className="text-xs text-gray-600 mt-1">
+            Ostavi prazno za verifikaciju pomoću sistemskih root CA sertifikata.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function RequestPanel() {
   const { currentRequest, updateRequest, setTabResponse, clearTabResponse, setTabLoading, cancelRequest, createRequest, activeEnvironment, workspace, saveRequest, createCollection, tabResponses, activeTabId, isLoading } = useApp()
-  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'script'>('params')
+  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'script' | 'grpc'>('params')
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
   const [showNewCollectionInput, setShowNewCollectionInput] = useState(false)
@@ -351,7 +491,24 @@ export function RequestPanel() {
     
     try {
       const electronAPI = (window as any).electronAPI
-      if (electronAPI && electronAPI.httpSendRequest) {
+
+      if (currentRequest.method === 'GRPC') {
+        if (!electronAPI?.grpcSendRequest) {
+          setTabResponse(activeTabId, {
+            status: 0,
+            statusText: 'Error',
+            headers: {},
+            body: 'gRPC is only available in the Electron app',
+            time: 0,
+            size: 0,
+            type: 'grpc',
+            grpcStatus: 'UNAVAILABLE',
+          })
+          return
+        }
+        const response = await electronAPI.grpcSendRequest(currentRequest, activeEnvironment)
+        setTabResponse(activeTabId, response)
+      } else if (electronAPI && electronAPI.httpSendRequest) {
         const response = await electronAPI.httpSendRequest(currentRequest, activeEnvironment)
         setTabResponse(activeTabId, response)
       } else {
@@ -453,17 +610,20 @@ export function RequestPanel() {
 
       <div className="border-b border-gray-700">
         <div className="flex">
-          {(['params', 'headers', 'body', 'auth', 'script'] as const).map((tab) => (
+          {(currentRequest.method === 'GRPC'
+            ? (['grpc', 'headers', 'script'] as const)
+            : (['params', 'headers', 'body', 'auth', 'script'] as const)
+          ).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab as any)}
               className={`px-4 py-2 text-sm ${
                 activeTab === tab
                   ? 'text-white border-b-2 border-blue-500'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'grpc' ? 'gRPC' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -645,6 +805,13 @@ export function RequestPanel() {
               />
             </div>
           </div>
+        )}
+
+        {activeTab === 'grpc' && (
+          <GrpcPanel
+            grpc={currentRequest.grpc || defaultGrpcConfig}
+            onChange={(grpc) => updateRequest({ grpc })}
+          />
         )}
       </div>
 

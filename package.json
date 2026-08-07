@@ -1,6 +1,6 @@
 {
   "name": "restless",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -40,11 +40,11 @@
     "@vitest/coverage-v8": "^4.1.7",
     "autoprefixer": "^10.4.27",
     "concurrently": "^9.2.1",
-    "electron": "^40.6.1",
+    "electron": "^43.3.0",
     "electron-builder": "^26.8.1",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
@@ -52,6 +52,8 @@
     "wait-on": "^9.0.4"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/proto-loader": "^0.8.1",
     "@monaco-editor/react": "^4.7.0",
     "axios": "^1.13.6",
     "curlconverter": "^4.12.0",
@@ -150,5 +152,12 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.28.1": true,
+    "tree-sitter@0.21.1": true,
+    "tree-sitter-bash@0.23.3": true,
+    "protobufjs@7.6.5": true
   }
 }

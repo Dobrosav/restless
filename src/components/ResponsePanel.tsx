@@ -151,10 +151,13 @@ export const ResponsePanel = memo(function ResponsePanel({ tabId }: ResponsePane
 
   const statusColor = useMemo(() => {
     if (!response) return 'text-gray-400'
+    if (response.type === 'grpc') {
+      return response.grpcStatus === 'OK' ? 'text-orange-400' : 'text-red-400'
+    }
     if (response.status >= 200 && response.status < 300) return 'text-green-400'
     if (response.status >= 300 && response.status < 400) return 'text-yellow-400'
     return 'text-red-400'
-  }, [response?.status])
+  }, [response?.status, response?.type, response?.grpcStatus])
 
   if (isLoading && !response) {
     return (
@@ -179,12 +182,26 @@ export const ResponsePanel = memo(function ResponsePanel({ tabId }: ResponsePane
     <div className="w-full flex flex-col h-full border-l border-gray-700">
       <div className="p-3 border-b border-gray-700 flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className={`text-lg font-bold ${statusColor}`}>
-            {response.status}
-          </span>
-          <span className="text-gray-400 text-sm">
-            {response.statusText}
-          </span>
+          {response.type === 'grpc' ? (
+            <>
+              <span className="text-xs font-bold bg-orange-500 bg-opacity-20 text-orange-400 border border-orange-500 border-opacity-40 px-2 py-0.5 rounded">gRPC</span>
+              <span className={`text-sm font-bold font-mono ${statusColor}`}>
+                {response.grpcStatus || 'UNKNOWN'}
+              </span>
+              {response.grpcMessages && response.grpcMessages.length > 1 && (
+                <span className="text-xs text-gray-500">{response.grpcMessages.length} messages</span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className={`text-lg font-bold ${statusColor}`}>
+                {response.status}
+              </span>
+              <span className="text-gray-400 text-sm">
+                {response.statusText}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-400">
           <span>Time: {response.time}ms</span>
