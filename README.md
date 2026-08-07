@@ -5,13 +5,14 @@ A Postman alternative built with Electron, React, and TypeScript. Features Bruno
 ## Features
 
 - **HTTP Methods**: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+- **gRPC Support**: Unary and Server Streaming calls, dynamic proto definition parsing, custom metadata, and TLS (with custom CA certificate support)
 - **Request Builder**: Headers, query params, body (JSON, text, form-data, x-www-form-urlencoded)
 - **Authentication**: Basic Auth, Bearer Token, API Key
 - **Response Viewer**: JSON formatting, headers, timing, size, syntax highlighting
 - **Bruno Format**: Native .bru file support
 - **Postman Import/Export**: Full compatibility with Postman collections
 - **Developer Tools**: Built-in utilities including Load Tester, JSON Formatter, Epoch Converter, Hash Generator, Base64 Encode/Decode, and Regex Tester
-- **Non-blocking Requests**: Background HTTP execution with cancel support
+- **Non-blocking Requests**: Background HTTP and gRPC execution with cancel support
 - **Resizable Layout**: Adjustable split pane between request and response panels
 - **Multi-platform**: Windows, macOS, Linux
 
@@ -145,6 +146,7 @@ api-client/
 │   │   └── DevToolsModal.tsx # Developer Tools (Load Tester, etc.)
 │   ├── lib/           # Core logic
 │   │   ├── httpClient.ts     # HTTP requests (axios)
+│   │   ├── grpcHelpers.ts    # gRPC interpolation and config helpers
 │   │   ├── bruParser.ts      # Bruno .bru format
 │   │   ├── postmanImport.ts  # Postman import/export
 │   │   └── loadTestEngine.ts # Core load testing engine
