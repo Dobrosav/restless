@@ -1,4 +1,4 @@
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'WS' | 'GRAPHQL'
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'WS' | 'GRAPHQL' | 'GRPC'
 
 export interface KeyValue {
   key: string
@@ -27,6 +27,20 @@ export interface RequestScript {
   post: string
 }
 
+export type GrpcCallType = 'unary' | 'server_streaming'
+
+export interface GrpcConfig {
+  proto: string
+  service: string
+  method: string
+  message: string
+  metadata: KeyValue[]
+  callType: GrpcCallType
+  tls: boolean
+  caCert?: string
+  skipVerify?: boolean
+}
+
 export interface ApiRequest {
   id: string
   name: string
@@ -37,6 +51,7 @@ export interface ApiRequest {
   body: RequestBody
   auth: Auth
   script: RequestScript
+  grpc?: GrpcConfig
   path?: string
 }
 
@@ -47,7 +62,9 @@ export interface ResponseData {
   body: string
   time: number
   size: number
-  type: 'http' | 'websocket' | 'graphql'
+  type: 'http' | 'websocket' | 'graphql' | 'grpc'
+  grpcStatus?: string
+  grpcMessages?: string[]
   wsMessages?: string[]
 }
 

@@ -1,11 +1,14 @@
 import { app, BrowserWindow, ipcMain, dialog, nativeImage, Menu, MenuItem } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import os from 'os'
 import { randomUUID } from 'crypto'
 import simpleGit, { SimpleGit } from 'simple-git'
 import axios from 'axios'
 import { autoUpdater } from 'electron-updater'
 import * as curlconverter from 'curlconverter'
+import * as grpc from '@grpc/grpc-js'
+import * as protoLoader from '@grpc/proto-loader'
 
 interface Config {
   gitUserName: string
@@ -907,4 +910,256 @@ ipcMain.handle('http:cancelRequest', async () => {
     controller.abort()
   })
   httpAbortControllers.clear()
+})
+
+// ─── gRPC ────────────────────────────────────────────────────────────────────
+
+function interpolateGrpc(text: string, environment: any): string {
+  if (!text || !environment) return text
+  return text.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+    const v = environment?.variables?.find((v: any) => v.enabled && v.key === key.trim())
+    return v ? v.value : match
+  })
+}
+
+ipcMain.handle('grpc:sendRequest', async (_, request: any, environment: any) => {
+  const startTime = performance.now()
+
+  // Write proto to a temp file (proto-loader needs a file path)
+  const tmpProtoPath = path.join(os.tmpdir(), `restless_${randomUUID()}.proto`)
+
+  try {
+    const protoContent = interpolateGrpc(request.grpc?.proto || '', environment)
+    const host = interpolateGrpc(request.url || '', environment)
+    const serviceName = interpolateGrpc(request.grpc?.service || '', environment)
+    const methodName = interpolateGrpc(request.grpc?.method || '', environment)
+    const callType: string = request.grpc?.callType || 'unary'
+    const useTls: boolean = request.grpc?.tls || false
+    const caCertStr: string | undefined = request.grpc?.caCert
+    const skipVerify: boolean = request.grpc?.skipVerify || false
+
+    let messageObj: any = {}
+    try {
+      const msgStr = interpolateGrpc(request.grpc?.message || '{}', environment)
+      messageObj = JSON.parse(msgStr)
+    } catch (e) {
+      return {
+        status: 0,
+        statusText: 'gRPC Error',
+        headers: {},
+        body: 'Invalid JSON message',
+        time: 0,
+        size: 0,
+        type: 'grpc',
+        grpcStatus: 'INVALID_ARGUMENT',
+      }
+    }
+
+    if (!protoContent) {
+      return {
+        status: 0,
+        statusText: 'gRPC Error',
+        headers: {},
+        body: 'Proto definition is empty',
+        time: 0,
+        size: 0,
+        type: 'grpc',
+        grpcStatus: 'INVALID_ARGUMENT',
+      }
+    }
+
+    // Write proto to temp file
+    fs.writeFileSync(tmpProtoPath, protoContent, 'utf-8')
+
+    // Load proto definition
+    const packageDef = await protoLoader.load(tmpProtoPath, {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    })
+
+    const protoDescriptor = grpc.loadPackageDefinition(packageDef)
+
+    // Navigate to service constructor — handle package-qualified names (e.g. "pkg.MyService")
+    const serviceParts = serviceName.split('.')
+    let ServiceCtor: any = protoDescriptor
+    for (const part of serviceParts) {
+      ServiceCtor = ServiceCtor?.[part]
+    }
+
+    if (!ServiceCtor || typeof ServiceCtor !== 'function') {
+      return {
+        status: 0,
+        statusText: 'gRPC Error',
+        headers: {},
+        body: `Service "${serviceName}" not found in proto definition`,
+        time: 0,
+        size: 0,
+        type: 'grpc',
+        grpcStatus: 'NOT_FOUND',
+      }
+    }
+
+    // Build metadata
+    const metadata = new grpc.Metadata()
+    if (Array.isArray(request.grpc?.metadata)) {
+      request.grpc.metadata
+        .filter((m: any) => m.enabled && m.key)
+        .forEach((m: any) => {
+          metadata.add(
+            interpolateGrpc(m.key, environment),
+            interpolateGrpc(m.value, environment)
+          )
+        })
+    }
+    // Also add request.headers as gRPC metadata
+    if (Array.isArray(request.headers)) {
+      request.headers
+        .filter((h: any) => h.enabled && h.key)
+        .forEach((h: any) => {
+          metadata.add(
+            interpolateGrpc(h.key, environment),
+            interpolateGrpc(h.value, environment)
+          )
+        })
+    }
+
+    let credentials: grpc.ChannelCredentials
+    if (useTls) {
+      if (skipVerify) {
+        // Dev mode: skip TLS verification entirely
+        process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+        credentials = grpc.credentials.createSsl()
+      } else if (caCertStr) {
+        // Custom CA cert (self-signed)
+        const cleanCert = caCertStr.trim().replace(/\r\n/g, '\n') + '\n'
+        const rootCerts = Buffer.from(cleanCert, 'utf8')
+        credentials = grpc.credentials.createSsl(rootCerts)
+      } else {
+        // System root CAs
+        credentials = grpc.credentials.createSsl()
+      }
+    } else {
+      process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1'
+      credentials = grpc.credentials.createInsecure()
+    }
+
+    const client = new ServiceCtor(host, credentials)
+
+    return await new Promise<any>((resolve) => {
+      const timeoutMs = 30000
+      const timer = setTimeout(() => {
+        try { client.close() } catch (_) {}
+        resolve({
+          status: 0,
+          statusText: 'gRPC Timeout',
+          headers: {},
+          body: 'Request timed out after 30s',
+          time: timeoutMs,
+          size: 0,
+          type: 'grpc',
+          grpcStatus: 'DEADLINE_EXCEEDED',
+        })
+      }, timeoutMs)
+
+      if (callType === 'server_streaming') {
+        // Server streaming
+        const call = client[methodName](messageObj, metadata)
+        const messages: string[] = []
+
+        call.on('data', (msg: any) => {
+          messages.push(JSON.stringify(msg, null, 2))
+        })
+
+        call.on('error', (err: any) => {
+          clearTimeout(timer)
+          try { client.close() } catch (_) {}
+          const endTime = performance.now()
+          const body = messages.length
+            ? messages.join('\n---\n') + '\n\n[Error] ' + err.message
+            : err.message
+          resolve({
+            status: err.code ?? 0,
+            statusText: 'gRPC Error',
+            headers: {},
+            body,
+            time: Math.round(endTime - startTime),
+            size: Buffer.byteLength(body),
+            type: 'grpc',
+            grpcStatus: err.details || err.message,
+            grpcMessages: messages,
+          })
+        })
+
+        call.on('end', () => {
+          clearTimeout(timer)
+          try { client.close() } catch (_) {}
+          const endTime = performance.now()
+          const body = messages.join('\n---\n') || '(empty response)'
+          resolve({
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            body,
+            time: Math.round(endTime - startTime),
+            size: Buffer.byteLength(body),
+            type: 'grpc',
+            grpcStatus: 'OK',
+            grpcMessages: messages,
+          })
+        })
+      } else {
+        // Unary call
+        client[methodName](messageObj, metadata, (err: any, response: any) => {
+          clearTimeout(timer)
+          try { client.close() } catch (_) {}
+          const endTime = performance.now()
+
+          if (err) {
+            const body = err.details || err.message || 'Unknown gRPC error'
+            resolve({
+              status: err.code ?? 0,
+              statusText: 'gRPC Error',
+              headers: {},
+              body,
+              time: Math.round(endTime - startTime),
+              size: Buffer.byteLength(body),
+              type: 'grpc',
+              grpcStatus: err.details || err.message,
+            })
+          } else {
+            const body = JSON.stringify(response, null, 2)
+            resolve({
+              status: 200,
+              statusText: 'OK',
+              headers: {},
+              body,
+              time: Math.round(endTime - startTime),
+              size: Buffer.byteLength(body),
+              type: 'grpc',
+              grpcStatus: 'OK',
+            })
+          }
+        })
+      }
+    })
+  } catch (error: any) {
+    const endTime = performance.now()
+    const body = error.message || 'Unknown gRPC error'
+    return {
+      status: 0,
+      statusText: 'gRPC Error',
+      headers: {},
+      body,
+      time: Math.round(endTime - startTime),
+      size: 0,
+      type: 'grpc',
+      grpcStatus: error.message,
+    }
+  } finally {
+    // Clean up temp proto file
+    try { fs.unlinkSync(tmpProtoPath) } catch (_) {}
+  }
 })

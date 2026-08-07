@@ -56,4 +56,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   curlConvert: (curlCommand: string, target: string) => ipcRenderer.invoke('curl:convert', curlCommand, target) as Promise<{ success: boolean; result?: string; error?: string }>,
   httpSendRequest: (request: any, environment: any) => ipcRenderer.invoke('http:sendRequest', request, environment) as Promise<any>,
   httpCancelRequest: () => ipcRenderer.invoke('http:cancelRequest') as Promise<void>,
+  grpcSendRequest: (request: any, environment: any) => ipcRenderer.invoke('grpc:sendRequest', request, environment) as Promise<any>,
 })

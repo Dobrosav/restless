@@ -61,6 +61,7 @@ export interface ElectronAPI {
   curlConvert: (curlCommand: string, target: string) => Promise<{ success: boolean; result?: string; error?: string }>
   httpSendRequest: (request: any, environment: any) => Promise<any>
   httpCancelRequest: () => Promise<void>
+  grpcSendRequest: (request: any, environment: any) => Promise<any>
 }
 
 declare global {
