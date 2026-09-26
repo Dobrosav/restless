@@ -11,7 +11,7 @@ SyntaxHighlighter.registerLanguage('json', json)
 
 const httpClient = createHttpClient()
 
-const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'WS', 'GRAPHQL', 'GRPC']
+const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'QUERY', 'WS', 'GRAPHQL', 'GRPC']
 
 const METHOD_COLORS: Record<HttpMethod, string> = {
   GET: 'text-green-400',
@@ -21,6 +21,7 @@ const METHOD_COLORS: Record<HttpMethod, string> = {
   DELETE: 'text-red-400',
   HEAD: 'text-gray-400',
   OPTIONS: 'text-gray-400',
+  QUERY: 'text-teal-400',
   WS: 'text-cyan-400',
   GRAPHQL: 'text-pink-400',
   GRPC: 'text-orange-400',
@@ -228,7 +229,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
           TLS / SSL
         </label>
         {grpc.tls && (
-          <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-yellow-500" title="Ignoriši greške certifikata (samo za development)">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-yellow-500" title="Ignore certificate errors (development only)">
             <input
               type="checkbox"
               checked={grpc.skipVerify || false}
@@ -316,7 +317,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
             spellCheck={false}
           />
           <p className="text-xs text-gray-600 mt-1">
-            Ostavi prazno za verifikaciju pomoću sistemskih root CA sertifikata.
+            Leave empty to verify using system root CA certificates.
           </p>
         </div>
       )}

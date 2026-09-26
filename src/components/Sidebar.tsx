@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useApp } from '../stores/AppContext'
 import { parseCurl } from '../lib/curlImport'
 import { Collection } from '../types'
@@ -10,6 +11,7 @@ function RequestItem({ request, isActive, onClick, onDelete }: { request: any; i
     PUT: 'text-blue-400',
     PATCH: 'text-purple-400',
     DELETE: 'text-red-400',
+    QUERY: 'text-teal-400',
   }
 
   return (
@@ -397,7 +399,7 @@ export function Sidebar() {
         )}
       </div>
 
-      {showImportCurlModal && (
+      {showImportCurlModal && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-4 rounded-lg w-[520px] max-w-full mx-4 shadow-xl">
             <div className="flex items-center justify-between mb-3">
@@ -435,11 +437,12 @@ export function Sidebar() {
                 onClick={() => setShowImportCurlModal(false)}
                 className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm"
               >
-                Otkaži
+                Cancel
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       </div>
     </div>

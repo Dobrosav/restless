@@ -72,7 +72,7 @@ export function DevToolsModal() {
   const [hashOutput, setHashOutput] = useState('')
 
   // Load Tester State
-  const LT_METHODS: LTHttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
+  const LT_METHODS: LTHttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'QUERY']
   const [ltTargets, setLtTargets] = useState<LoadTestTarget[]>([
     { id: crypto.randomUUID(), url: '', method: 'GET', headers: {}, body: '', weight: 100 },
   ])

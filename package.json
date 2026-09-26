@@ -1,6 +1,6 @@
 {
   "name": "restless",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Restless - Bruno-style desktop application",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -37,7 +37,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.1.4",
-    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/coverage-v8": "^5.0.2",
     "autoprefixer": "^10.4.27",
     "concurrently": "^9.2.1",
     "electron": "^43.3.0",
@@ -48,7 +48,7 @@
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.1.7",
+    "vitest": "^5.0.2",
     "wait-on": "^9.0.4"
   },
   "dependencies": {
