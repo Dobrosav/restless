@@ -7,6 +7,7 @@ const methodColors: Record<string, string> = {
   PUT: 'text-blue-400',
   PATCH: 'text-purple-400',
   DELETE: 'text-red-400',
+  QUERY: 'text-teal-400',
 }
 
 export function TabsBar() {
