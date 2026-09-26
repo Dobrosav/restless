@@ -4,7 +4,7 @@ A Postman alternative built with Electron, React, and TypeScript. Features Bruno
 
 ## Features
 
-- **HTTP Methods**: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+- **HTTP Methods**: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, QUERY
 - **gRPC Support**: Unary and Server Streaming calls, dynamic proto definition parsing, custom metadata, and TLS (with custom CA certificate support)
 - **Request Builder**: Headers, query params, body (JSON, text, form-data, x-www-form-urlencoded)
 - **Authentication**: Basic Auth, Bearer Token, API Key
