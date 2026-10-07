@@ -58,7 +58,7 @@ export function GitConfigDialog({ isOpen, onClose, onSave }: GitConfigDialogProp
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Your name"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-700 border border-gray-600 rounded-sm px-3 py-2 text-white text-sm"
               autoFocus
             />
           </div>
@@ -69,7 +69,7 @@ export function GitConfigDialog({ isOpen, onClose, onSave }: GitConfigDialogProp
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+              className="w-full bg-gray-700 border border-gray-600 rounded-sm px-3 py-2 text-white text-sm"
             />
           </div>
         </div>
@@ -77,7 +77,7 @@ export function GitConfigDialog({ isOpen, onClose, onSave }: GitConfigDialogProp
           <button
             onClick={handleSave}
             disabled={!userName.trim() || !userEmail.trim() || loading}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded text-sm font-medium"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-sm text-sm font-medium"
           >
             {loading ? 'Loading...' : 'Save'}
           </button>

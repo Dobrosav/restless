@@ -45,7 +45,7 @@ export function TabsBar() {
       <div className="h-10 bg-gray-900 border-b border-gray-700 flex items-center px-4">
         <button
           onClick={createRequest}
-          className="text-gray-400 hover:text-white px-3 py-1 text-sm rounded transition-colors flex items-center gap-2"
+          className="text-gray-400 hover:text-white px-3 py-1 text-sm rounded-sm transition-colors flex items-center gap-2"
         >
           <span>+</span>
           <span>New Request</span>
@@ -81,7 +81,7 @@ export function TabsBar() {
                   e.stopPropagation()
                   closeTab(tab.id)
                 }}
-                className={`px-2 py-1 flex items-center justify-center text-xs w-6 h-6 rounded-sm ml-1 mr-1 transition-opacity ${
+                className={`px-2 py-1 flex items-center justify-center text-xs w-6 h-6 rounded-xs ml-1 mr-1 transition-opacity ${
                   isActive ? 'opacity-100 text-gray-400 hover:text-white hover:bg-gray-700' : 'opacity-0 group-hover:opacity-100 text-gray-500 hover:text-white hover:bg-gray-700'
                 }`}
                 title="Close tab"
