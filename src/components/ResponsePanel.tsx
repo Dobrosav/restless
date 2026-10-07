@@ -86,7 +86,7 @@ const BodyTab = memo(({ body, onShowAll }: { body: string; onShowAll: () => void
           </span>
           <button
             onClick={onShowAll}
-            className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded"
+            className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-sm"
           >
             Show all ({body.length.toLocaleString()} chars)
           </button>
@@ -125,7 +125,7 @@ const BodyTabFull = memo(({ body, onCollapse }: { body: string; onCollapse: () =
       <div className="p-2 border-t border-gray-700 bg-gray-800">
         <button
           onClick={onCollapse}
-          className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded"
+          className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded-sm"
         >
           Collapse
         </button>
@@ -184,7 +184,7 @@ export const ResponsePanel = memo(function ResponsePanel({ tabId }: ResponsePane
         <div className="flex items-center gap-2">
           {response.type === 'grpc' ? (
             <>
-              <span className="text-xs font-bold bg-orange-500 bg-opacity-20 text-orange-400 border border-orange-500 border-opacity-40 px-2 py-0.5 rounded">gRPC</span>
+              <span className="text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-sm">gRPC</span>
               <span className={`text-sm font-bold font-mono ${statusColor}`}>
                 {response.grpcStatus || 'UNKNOWN'}
               </span>
@@ -231,14 +231,14 @@ export const ResponsePanel = memo(function ResponsePanel({ tabId }: ResponsePane
         <div className="flex gap-2">
           <button
             onClick={handleCopy}
-            className="text-xs px-2 py-1 text-gray-400 hover:text-white rounded hover:bg-gray-700 transition-colors flex items-center gap-1"
+            className="text-xs px-2 py-1 text-gray-400 hover:text-white rounded-sm hover:bg-gray-700 transition-colors flex items-center gap-1"
             title="Copy Response Body"
           >
             {copied ? '✓ Copied' : '📋 Copy'}
           </button>
           <button
             onClick={() => tabId && clearTabResponse(tabId)}
-            className="text-xs px-2 py-1 text-gray-400 hover:text-red-400 rounded hover:bg-gray-700 transition-colors flex items-center gap-1"
+            className="text-xs px-2 py-1 text-gray-400 hover:text-red-400 rounded-sm hover:bg-gray-700 transition-colors flex items-center gap-1"
             title="Clear Response"
           >
             ✕ Clear

@@ -60,7 +60,7 @@ function SyntaxEditor({ value, onChange, language }: { value: string, onChange: 
   }
 
   return (
-    <div className="relative w-full h-52 bg-[#1e1e1e] rounded border border-gray-600 focus-within:border-blue-500 overflow-hidden font-mono text-xs">
+    <div className="relative w-full h-52 bg-[#1e1e1e] rounded-sm border border-gray-600 focus-within:border-blue-500 overflow-hidden font-mono text-xs">
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none" aria-hidden="true">
         <SyntaxHighlighter
           language={language === 'json' ? 'json' : 'text'}
@@ -85,7 +85,7 @@ function SyntaxEditor({ value, onChange, language }: { value: string, onChange: 
         </SyntaxHighlighter>
       </div>
       <textarea
-        className="absolute inset-0 w-full h-full bg-transparent p-3 resize-none focus:outline-none"
+        className="absolute inset-0 w-full h-full bg-transparent p-3 resize-none focus:outline-hidden"
         style={{
           fontFamily: SHARED_FONT_FAMILY,
           fontSize: '12px',
@@ -134,21 +134,21 @@ function KeyValueEditor({ items, onChange, placeholder = 'Key' }: KeyValueEditor
             type="checkbox"
             checked={item.enabled}
             onChange={(e) => updateItem(index, { enabled: e.target.checked })}
-            className="w-4 h-4 rounded"
+            className="w-4 h-4 rounded-sm"
           />
           <input
             type="text"
             value={item.key}
             onChange={(e) => updateItem(index, { key: e.target.value })}
             placeholder={placeholder}
-            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-sm text-white"
           />
           <input
             type="text"
             value={item.value}
             onChange={(e) => updateItem(index, { value: e.target.value })}
             placeholder="Value"
-            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-sm text-white"
           />
           <button
             onClick={() => removeItem(index)}
@@ -213,7 +213,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
           <select
             value={grpc.callType}
             onChange={(e) => update({ callType: e.target.value as import('../types').GrpcCallType })}
-            className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+            className="bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-xs text-white"
           >
             <option value="unary">Unary</option>
             <option value="server_streaming">Server Streaming</option>
@@ -224,7 +224,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
             type="checkbox"
             checked={grpc.tls}
             onChange={(e) => update({ tls: e.target.checked })}
-            className="w-3.5 h-3.5 rounded"
+            className="w-3.5 h-3.5 rounded-sm"
           />
           TLS / SSL
         </label>
@@ -234,7 +234,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
               type="checkbox"
               checked={grpc.skipVerify || false}
               onChange={(e) => update({ skipVerify: e.target.checked })}
-              className="w-3.5 h-3.5 rounded"
+              className="w-3.5 h-3.5 rounded-sm"
             />
             Skip verify ⚠️
           </label>
@@ -250,7 +250,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
             value={grpc.service}
             onChange={(e) => update({ service: e.target.value })}
             placeholder="e.g. helloworld.Greeter  or  Greeter"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white font-mono focus:outline-none focus:border-orange-500"
+            className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-sm text-white font-mono focus:outline-hidden focus:border-orange-500"
           />
         </div>
         <div className="flex-1">
@@ -260,7 +260,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
             value={grpc.method}
             onChange={(e) => update({ method: e.target.value })}
             placeholder="e.g. SayHello"
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white font-mono focus:outline-none focus:border-orange-500"
+            className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-sm text-white font-mono focus:outline-hidden focus:border-orange-500"
           />
         </div>
       </div>
@@ -286,7 +286,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
           onChange={(e) => update({ proto: e.target.value })}
           onKeyDown={(e) => handleTabInTextarea(e, grpc.proto, (val) => update({ proto: val }))}
           placeholder={`syntax = "proto3";\n\npackage helloworld;\n\nservice Greeter {\n  rpc SayHello (HelloRequest) returns (HelloReply);\n}\n\nmessage HelloRequest {\n  string name = 1;\n}\n\nmessage HelloReply {\n  string message = 1;\n}`}
-          className="w-full h-52 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-orange-500"
+          className="w-full h-52 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded-sm border border-gray-600 resize-none focus:outline-hidden focus:border-orange-500"
           spellCheck={false}
         />
       </div>
@@ -313,7 +313,7 @@ function GrpcPanel({ grpc, onChange }: GrpcPanelProps) {
             onChange={(e) => update({ caCert: e.target.value || undefined })}
             onKeyDown={(e) => handleTabInTextarea(e, grpc.caCert || '', (val) => update({ caCert: val || undefined }))}
             placeholder={'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----'}
-            className="w-full h-32 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-orange-500"
+            className="w-full h-32 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded-sm border border-gray-600 resize-none focus:outline-hidden focus:border-orange-500"
             spellCheck={false}
           />
           <p className="text-xs text-gray-600 mt-1">
@@ -561,7 +561,7 @@ export function RequestPanel() {
         <select
           value={currentRequest.method}
           onChange={(e) => updateRequest({ method: e.target.value as HttpMethod })}
-          className={`bg-gray-700 border border-gray-600 rounded px-2 py-1 font-mono text-sm font-bold ${METHOD_COLORS[currentRequest.method]}`}
+          className={`bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 font-mono text-sm font-bold ${METHOD_COLORS[currentRequest.method]}`}
         >
           {METHODS.map((m) => (
             <option key={m} value={m} className={METHOD_COLORS[m]}>
@@ -576,33 +576,33 @@ export function RequestPanel() {
           value={currentRequest.url}
           onChange={(e) => updateRequest({ url: e.target.value })}
           placeholder="Enter URL"
-          className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white"
+          className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-3 py-1 text-white"
         />
         
         <button
           onClick={() => setShowSaveDialog(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-medium"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-sm font-medium"
         >
           Save
         </button>
         {isLoading ? (
           <button
             onClick={handleCancel}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded font-medium"
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded-sm font-medium"
           >
             Cancel
           </button>
         ) : (
           <button
             onClick={handleSend}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-medium"
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-sm font-medium"
           >
             Send
           </button>
         )}
         <button
           onClick={() => setShowCurlModal(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded font-medium"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-sm font-medium"
           title="Export as curl"
         >
           cURL
@@ -655,7 +655,7 @@ export function RequestPanel() {
                   <button
                     key={type}
                     onClick={() => updateRequest({ body: { ...currentRequest.body, type, graphql: currentRequest.body.graphql || { query: '', variables: '{}' } } })}
-                    className={`px-2 py-1 text-xs rounded ${
+                    className={`px-2 py-1 text-xs rounded-sm ${
                       currentRequest.body.type === type
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-700 text-gray-300'
@@ -668,7 +668,7 @@ export function RequestPanel() {
               {(currentRequest.body.type === 'json' || currentRequest.body.type === 'graphql') && (
                 <button
                   onClick={handleFormat}
-                  className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 flex items-center gap-1 bg-gray-700/50 hover:bg-gray-700 rounded transition-colors"
+                  className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 flex items-center gap-1 bg-gray-700/50 hover:bg-gray-700 rounded-sm transition-colors"
                   title="Format JSON (Ctrl+Shift+F)"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
@@ -681,7 +681,7 @@ export function RequestPanel() {
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Query</label>
                   <textarea
-                    className="w-full h-32 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
+                    className="w-full h-32 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded-sm border border-gray-600 resize-none focus:outline-hidden focus:border-blue-500"
                     value={currentRequest.body.graphql?.query || ''}
                     onChange={(e) => updateRequest({ body: { ...currentRequest.body, graphql: { query: e.target.value, variables: currentRequest.body.graphql?.variables || '{}' } } })}
                     onKeyDown={(e) => handleTabInTextarea(e, currentRequest.body.graphql?.query || '', (val) => updateRequest({ body: { ...currentRequest.body, graphql: { query: val, variables: currentRequest.body.graphql?.variables || '{}' } } }))}
@@ -691,7 +691,7 @@ export function RequestPanel() {
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Variables</label>
                   <textarea
-                    className="w-full h-20 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
+                    className="w-full h-20 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded-sm border border-gray-600 resize-none focus:outline-hidden focus:border-blue-500"
                     value={currentRequest.body.graphql?.variables || '{}'}
                     onChange={(e) => updateRequest({ body: { ...currentRequest.body, graphql: { query: currentRequest.body.graphql?.query || '', variables: e.target.value } } })}
                     onKeyDown={(e) => handleTabInTextarea(e, currentRequest.body.graphql?.variables || '{}', (val) => updateRequest({ body: { ...currentRequest.body, graphql: { query: currentRequest.body.graphql?.query || '', variables: val } } }))}
@@ -715,7 +715,7 @@ export function RequestPanel() {
             <select
               value={currentRequest.auth.type}
               onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, type: e.target.value as any } })}
-              className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+              className="bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm"
             >
               <option value="none">No Auth</option>
               <option value="basic">Basic Auth</option>
@@ -730,14 +730,14 @@ export function RequestPanel() {
                   placeholder="Username"
                   value={currentRequest.auth.basic?.username || ''}
                   onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, basic: { username: e.target.value, password: currentRequest.auth.basic?.password || '' } } })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm"
                 />
                 <input
                   type="password"
                   placeholder="Password"
                   value={currentRequest.auth.basic?.password || ''}
                   onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, basic: { username: currentRequest.auth.basic?.username || '', password: e.target.value } } })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm"
                 />
               </div>
             )}
@@ -748,7 +748,7 @@ export function RequestPanel() {
                 placeholder="Token"
                 value={currentRequest.auth.bearer?.token || ''}
                 onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, bearer: { token: e.target.value } } })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm"
               />
             )}
             
@@ -760,20 +760,20 @@ export function RequestPanel() {
                     placeholder="Key"
                     value={currentRequest.auth.apiKey?.key || ''}
                     onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, apiKey: { key: e.target.value, value: currentRequest.auth.apiKey?.value || '', in: currentRequest.auth.apiKey?.in || 'header' } } })}
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                    className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm"
                   />
                   <input
                     type="text"
                     placeholder="Value"
                     value={currentRequest.auth.apiKey?.value || ''}
                     onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, apiKey: { key: currentRequest.auth.apiKey?.key || '', value: e.target.value, in: currentRequest.auth.apiKey?.in || 'header' } } })}
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                    className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm"
                   />
                 </div>
                 <select
                   value={currentRequest.auth.apiKey?.in || 'header'}
                   onChange={(e) => updateRequest({ auth: { ...currentRequest.auth, apiKey: { key: currentRequest.auth.apiKey?.key || '', value: currentRequest.auth.apiKey?.value || '', in: e.target.value as 'header' | 'query' } } })}
-                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm"
+                  className="bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm"
                 >
                   <option value="header">Header</option>
                   <option value="query">Query Param</option>
@@ -788,7 +788,7 @@ export function RequestPanel() {
             <div>
               <label className="text-xs text-gray-400 block mb-1">Pre-request Script</label>
               <textarea
-                className="w-full h-28 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
+                className="w-full h-28 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded-sm border border-gray-600 resize-none focus:outline-hidden focus:border-blue-500"
                 value={currentRequest.script.pre}
                 onChange={(e) => updateRequest({ script: { ...currentRequest.script, pre: e.target.value } })}
                 onKeyDown={(e) => handleTabInTextarea(e, currentRequest.script.pre, (val) => updateRequest({ script: { ...currentRequest.script, pre: val } }))}
@@ -798,7 +798,7 @@ export function RequestPanel() {
             <div>
               <label className="text-xs text-gray-400 block mb-1">Post-request Script</label>
               <textarea
-                className="w-full h-28 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded border border-gray-600 resize-none focus:outline-none focus:border-blue-500"
+                className="w-full h-28 bg-[#1e1e1e] text-gray-200 font-mono text-xs p-3 rounded-sm border border-gray-600 resize-none focus:outline-hidden focus:border-blue-500"
                 value={currentRequest.script.post}
                 onChange={(e) => updateRequest({ script: { ...currentRequest.script, post: e.target.value } })}
                 onKeyDown={(e) => handleTabInTextarea(e, currentRequest.script.post, (val) => updateRequest({ script: { ...currentRequest.script, post: val } }))}
@@ -817,7 +817,7 @@ export function RequestPanel() {
       </div>
 
        {showSaveDialog && (
-         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
            <div className="bg-gray-800 p-4 rounded-lg w-80">
              <h3 className="text-white font-medium mb-3">
                {isRequestSaved() ? 'Update Request' : 'Save Request'}
@@ -830,7 +830,7 @@ export function RequestPanel() {
              ) : null}
              
              {isRequestSaved() && (
-               <div className="text-cyan-400 text-sm mb-3 p-2 bg-cyan-900 bg-opacity-30 rounded">
+               <div className="text-cyan-400 text-sm mb-3 p-2 bg-cyan-900/30 rounded-sm">
                  This request already exists. Click Save to update it.
                </div>
              )}
@@ -841,7 +841,7 @@ export function RequestPanel() {
                  type="text"
                  value={currentRequest.name}
                  onChange={(e) => updateRequest({ name: e.target.value })}
-                 className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm mt-1"
+                 className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm mt-1"
                />
              </div>
              
@@ -851,7 +851,7 @@ export function RequestPanel() {
                    <select
                      id="collection-select"
                      defaultValue={getSavedCollection()?.id || ''}
-                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm mt-1"
+                     className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-sm mt-1"
                    >
                      {getFlatCollections(workspace?.collections || []).map(c => (
                        <option key={c.id} value={c.id}>{c.name}</option>
@@ -867,7 +867,7 @@ export function RequestPanel() {
                      value={newCollectionName}
                      onChange={(e) => setNewCollectionName(e.target.value)}
                      placeholder="Collection name"
-                     className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
+                     className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-white text-xs"
                      autoFocus
                    />
                    <button
@@ -928,13 +928,13 @@ export function RequestPanel() {
                      alert('Failed to save request. Check console for details.')
                    }
                  }}
-                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-sm text-sm"
                >
                  {isRequestSaved() ? 'Update' : 'Save'}
                </button>
                <button
                  onClick={() => setShowSaveDialog(false)}
-                 className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm"
+                 className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-sm text-sm"
                >
                  Cancel
                </button>
@@ -944,8 +944,8 @@ export function RequestPanel() {
        )}
 
        {showCurlModal && (
-         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-           <div className="bg-gray-800 rounded shadow-lg border border-gray-600 max-w-2xl w-full mx-4">
+         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+           <div className="bg-gray-800 rounded-sm shadow-lg border border-gray-600 max-w-2xl w-full mx-4">
              <div className="flex items-center justify-between p-4 border-b border-gray-700">
                <h2 className="text-lg font-bold text-white">Export as cURL</h2>
                <button
@@ -957,7 +957,7 @@ export function RequestPanel() {
              </div>
              
              <div className="p-4 bg-gray-900">
-               <div className="bg-gray-800 border border-gray-700 rounded p-3 mb-3 max-h-64 overflow-y-auto">
+               <div className="bg-gray-800 border border-gray-700 rounded-sm p-3 mb-3 max-h-64 overflow-y-auto">
                  <code className="text-gray-200 text-xs font-mono whitespace-pre-wrap break-all">
                    {generateCurl(currentRequest, activeEnvironment)}
                  </code>
@@ -970,7 +970,7 @@ export function RequestPanel() {
                       setCopySuccess(true)
                       setTimeout(() => setCopySuccess(false), 2000)
                     }}
-                    className={`flex-1 text-white px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    className={`flex-1 text-white px-3 py-2 rounded-sm text-sm font-medium transition-colors ${
                       copySuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
                     }`}
                   >
@@ -978,7 +978,7 @@ export function RequestPanel() {
                   </button>
                  <button
                    onClick={() => setShowCurlModal(false)}
-                   className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm font-medium"
+                   className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-sm text-sm font-medium"
                  >
                    Close
                  </button>

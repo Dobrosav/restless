@@ -106,7 +106,7 @@ export function EnvironmentManager() {
       <div className="p-2 border-gray-700">
         <button
           onClick={() => setIsOpen(true)}
-          className="w-full text-left px-2 py-1 text-xs text-gray-400 hover:text-white flex items-center gap-2 bg-gray-700 rounded transition-colors"
+          className="w-full text-left px-2 py-1 text-xs text-gray-400 hover:text-white flex items-center gap-2 bg-gray-700 rounded-sm transition-colors"
         >
           <span>🔧</span>
           <span>Environments</span>
@@ -119,7 +119,7 @@ export function EnvironmentManager() {
   }
 
   return (
-    <div ref={containerRef} className="absolute top-12 left-4 z-50 w-80 bg-gray-800 border border-gray-700 rounded shadow-xl p-3">
+    <div ref={containerRef} className="absolute top-12 left-4 z-50 w-80 bg-gray-800 border border-gray-700 rounded-sm shadow-xl p-3">
       <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
         <span className="text-sm font-medium text-gray-300">Environments <span className="text-xs text-gray-500">({currentCollection.name})</span></span>
         <button onClick={() => setIsOpen(false)} className="text-gray-500 hover:text-white">×</button>
@@ -134,7 +134,7 @@ export function EnvironmentManager() {
                 const env = environments.find(en => en.id === e.target.value) || null
                 setActiveEnvironment(env)
               }}
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white"
+              className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-sm text-white"
             >
               <option value="">No Environment</option>
               {environments.map(env => (
@@ -143,7 +143,7 @@ export function EnvironmentManager() {
             </select>
             <button
               onClick={() => setIsCreating(true)}
-              className="px-2 py-1 bg-blue-600 hover:bg-blue-500 transition-colors rounded text-sm text-white"
+              className="px-2 py-1 bg-blue-600 hover:bg-blue-500 transition-colors rounded-sm text-sm text-white"
             >
               +
             </button>
@@ -156,11 +156,11 @@ export function EnvironmentManager() {
               value={newEnvName}
               onChange={(e) => setNewEnvName(e.target.value)}
               placeholder="Environment name..."
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-sm text-white focus:outline-hidden focus:border-blue-500"
             />
             <button
               type="submit"
-              className="px-2 py-1 bg-green-600 hover:bg-green-500 transition-colors rounded text-sm text-white flex items-center justify-center"
+              className="px-2 py-1 bg-green-600 hover:bg-green-500 transition-colors rounded-sm text-sm text-white flex items-center justify-center"
               title="Save"
             >
               ✓
@@ -171,7 +171,7 @@ export function EnvironmentManager() {
                 setIsCreating(false)
                 setNewEnvName('')
               }}
-              className="px-2 py-1 bg-red-600 hover:bg-red-500 transition-colors rounded text-sm text-white flex items-center justify-center"
+              className="px-2 py-1 bg-red-600 hover:bg-red-500 transition-colors rounded-sm text-sm text-white flex items-center justify-center"
               title="Cancel"
             >
               ✕
@@ -189,7 +189,7 @@ export function EnvironmentManager() {
         )}
 
         {editingEnv && (
-          <div className="bg-gray-900 border border-gray-700 p-3 rounded mt-3 shadow-inner">
+          <div className="bg-gray-900 border border-gray-700 p-3 rounded-sm mt-3 shadow-inner">
             <div className="text-sm font-medium text-white mb-2">Edit: {editingEnv.name}</div>
             
             <div className="max-h-64 overflow-y-auto space-y-2 pr-1 no-scrollbar">
@@ -199,7 +199,7 @@ export function EnvironmentManager() {
                     type="checkbox"
                     checked={v.enabled}
                     onChange={(e) => handleUpdateVariable(i, { enabled: e.target.checked })}
-                    className="w-4 h-4 rounded"
+                    className="w-4 h-4 rounded-sm"
                     title="Enable/Disable variable"
                   />
                   <input
@@ -207,14 +207,14 @@ export function EnvironmentManager() {
                     value={v.key}
                     onChange={(e) => handleUpdateVariable(i, { key: e.target.value })}
                     placeholder="Key"
-                    className="flex-1 w-1/3 bg-gray-800 border border-gray-700 focus:border-blue-500 rounded px-2 py-1 text-xs text-white"
+                    className="flex-1 w-1/3 bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-sm px-2 py-1 text-xs text-white"
                   />
                   <input
                     type="text"
                     value={v.value}
                     onChange={(e) => handleUpdateVariable(i, { value: e.target.value })}
                     placeholder="Value"
-                    className="flex-1 w-1/2 bg-gray-800 border border-gray-700 focus:border-blue-500 rounded px-2 py-1 text-xs text-white"
+                    className="flex-1 w-1/2 bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-sm px-2 py-1 text-xs text-white"
                   />
                   <button
                     onClick={() => handleRemoveVariable(i)}

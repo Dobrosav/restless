@@ -227,7 +227,7 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
           onClick={() => setIsOpen(!isOpen)}
           className="w-full text-left px-2 py-1 text-sm text-gray-400 hover:text-white flex items-center gap-2"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500 flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500 shrink-0">
             <circle cx="18" cy="18" r="3"/>
             <circle cx="6" cy="6" r="3"/>
             <path d="M6 21V9a9 9 0 0 0 9 9"/>
@@ -237,7 +237,7 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
         </button>
 
        {isOpen && (
-         <div className="mt-2 p-2 bg-gray-800 rounded space-y-2 absolute z-50 min-w-48 shadow-lg border border-gray-600">
+         <div className="mt-2 p-2 bg-gray-800 rounded-sm space-y-2 absolute z-50 min-w-48 shadow-lg border border-gray-600">
            <div className="flex items-center justify-between">
              <span className="text-xs text-gray-500">Git Settings</span>
              <div className="flex gap-1">
@@ -270,19 +270,19 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
                 <div className="space-y-1">
                   <button
                     onClick={() => setShowBranchInput(!showBranchInput)}
-                    className="w-full text-left px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white flex items-center justify-between"
+                    className="w-full text-left px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded-sm text-xs text-white flex items-center justify-between"
                   >
                     <span>🌿 Switch Branch</span>
                     <span>{showBranchInput ? '▼' : '▶'}</span>
                   </button>
                   {showBranchInput && (
-                    <div className="space-y-1 bg-gray-700 rounded p-1">
+                    <div className="space-y-1 bg-gray-700 rounded-sm p-1">
                       {branches.map(branch => (
                         <button
                           key={branch}
                           onClick={() => handleCheckoutBranch(branch)}
                           disabled={isLoading || branch === status?.current}
-                          className={`w-full text-left px-2 py-1 rounded text-xs ${
+                          className={`w-full text-left px-2 py-1 rounded-sm text-xs ${
                             branch === status?.current
                               ? 'bg-blue-600 text-white'
                               : 'bg-gray-600 hover:bg-gray-500 text-gray-100'
@@ -299,7 +299,7 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
                             setShowBranchInput(false)
                           }
                         }}
-                        className="w-full text-left px-2 py-1 rounded text-xs bg-green-700 hover:bg-green-600 text-white mt-1"
+                        className="w-full text-left px-2 py-1 rounded-sm text-xs bg-green-700 hover:bg-green-600 text-white mt-1"
                       >
                         + New Branch
                       </button>
@@ -311,7 +311,7 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
                       value={newBranchName}
                       onChange={(e) => setNewBranchName(e.target.value)}
                       placeholder="New branch name..."
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-xs text-white"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && newBranchName.trim()) {
                           handleCreateBranch()
@@ -339,12 +339,12 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
                   value={newRemoteUrl}
                   onChange={(e) => setNewRemoteUrl(e.target.value)}
                   placeholder="Remote URL (https://... or git@...)"
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-xs text-white"
                 />
                 <button
                   onClick={handleSetRemote}
                   disabled={isLoading || !newRemoteUrl.trim() || newRemoteUrl.trim() === remoteUrl}
-                  className="w-full px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs text-white disabled:opacity-50"
+                  className="w-full px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded-sm text-xs text-white disabled:opacity-50"
                 >
                   Set Remote
                 </button>
@@ -371,21 +371,21 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
                  <button
                    onClick={handlePull}
                    disabled={isLoading || !remoteUrl}
-                   className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white disabled:opacity-50"
+                   className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded-sm text-xs text-white disabled:opacity-50"
                  >
                    Pull
                  </button>
                  <button
                    onClick={handlePush}
                    disabled={isLoading || !remoteUrl}
-                   className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white disabled:opacity-50"
+                   className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded-sm text-xs text-white disabled:opacity-50"
                  >
                    Push
                  </button>
                </div>
 
                {error && (
-                 <div className="text-xs text-red-400 bg-red-900 bg-opacity-30 p-1 rounded">{error}</div>
+                 <div className="text-xs text-red-400 bg-red-900/30 p-1 rounded-sm">{error}</div>
                )}
 
                {status && status.ahead === 0 && !hasChanges && (
@@ -393,7 +393,7 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
                )}
 
                {status && status.ahead > 0 && (
-                 <div className="text-xs text-yellow-500 bg-yellow-900 bg-opacity-20 p-1 rounded">
+                 <div className="text-xs text-yellow-500 bg-yellow-900/20 p-1 rounded-sm">
                    You have {status.ahead} commit{status.ahead > 1 ? 's' : ''} ready to push
                  </div>
                )}
@@ -405,12 +405,12 @@ export function GitPanel({ onOpenConfig }: GitPanelProps) {
                     value={commitMessage}
                     onChange={(e) => setCommitMessage(e.target.value)}
                     placeholder="Commit message..."
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-xs text-white"
                   />
                   <button
                     onClick={handleCommit}
                     disabled={isLoading || !commitMessage.trim()}
-                    className="w-full px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs text-white disabled:opacity-50"
+                    className="w-full px-2 py-1 bg-green-600 hover:bg-green-700 rounded-sm text-xs text-white disabled:opacity-50"
                   >
                     Commit
                   </button>

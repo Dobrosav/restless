@@ -257,7 +257,7 @@ export function DevToolsModal() {
         
         // Add highlighted match
         parts.push(
-          <mark key={`match-${match.index}-${i}`} className="bg-purple-600/60 text-purple-100 rounded-sm px-0.5">
+          <mark key={`match-${match.index}-${i}`} className="bg-purple-600/60 text-purple-100 rounded-xs px-0.5">
             {match[0]}
           </mark>
         );
@@ -277,7 +277,7 @@ export function DevToolsModal() {
         </div>
       );
     } catch (e: any) {
-      return <div className="text-red-400 text-sm font-medium bg-red-900/20 p-2 rounded border border-red-900/50">Error: {e.message}</div>;
+      return <div className="text-red-400 text-sm font-medium bg-red-900/20 p-2 rounded-sm border border-red-900/50">Error: {e.message}</div>;
     }
   }
 
@@ -351,62 +351,62 @@ export function DevToolsModal() {
     <div className="w-48 bg-gray-900 border-r border-gray-700 flex flex-col p-2 space-y-1">
       <button 
         onClick={() => setActiveTool('json-to-model')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'json-to-model' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'json-to-model' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         JSON to Model
       </button>
       <button 
         onClick={() => setActiveTool('base64')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'base64' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'base64' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         Base64
       </button>
       <button 
         onClick={() => setActiveTool('curl-converter')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'curl-converter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'curl-converter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         cURL Converter
       </button>
       <button 
         onClick={() => setActiveTool('url-encode')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'url-encode' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'url-encode' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         URL Encode
       </button>
       <button 
         onClick={() => { setActiveTool('uuid'); if(uuids.length === 0) generateUUIDs(); }}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'uuid' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'uuid' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         UUID Generator
       </button>
       <button 
         onClick={() => setActiveTool('json-formatter')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'json-formatter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'json-formatter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         JSON Formatter
       </button>
       <button 
         onClick={() => setActiveTool('epoch-converter')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'epoch-converter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'epoch-converter' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         Epoch Converter
       </button>
       <button 
         onClick={() => setActiveTool('hash-generator')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'hash-generator' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'hash-generator' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         Hash Generator
       </button>
       <button 
         onClick={() => setActiveTool('regex-tester')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'regex-tester' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'regex-tester' ? 'bg-purple-900/50 text-purple-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         Regex Tester
       </button>
       <div className="border-t border-gray-700 my-1" />
       <button 
         onClick={() => setActiveTool('load-tester')}
-        className={`text-left px-3 py-2 rounded text-sm transition ${activeTool === 'load-tester' ? 'bg-orange-900/50 text-orange-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
+        className={`text-left px-3 py-2 rounded-sm text-sm transition ${activeTool === 'load-tester' ? 'bg-orange-900/50 text-orange-300 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`}
       >
         ⚡ Load Tester
       </button>
@@ -417,7 +417,7 @@ export function DevToolsModal() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 text-sm font-medium text-gray-300 hover:text-white px-2 py-1.5 rounded hover:bg-gray-700 transition"
+        className="flex items-center gap-1.5 text-sm font-medium text-gray-300 hover:text-white px-2 py-1.5 rounded-sm hover:bg-gray-700 transition"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-purple-400">
           <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
@@ -426,7 +426,7 @@ export function DevToolsModal() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-xs">
           <div className="bg-gray-800 rounded-lg shadow-2xl border border-gray-600 flex flex-col w-[1100px] max-w-full h-[750px] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800/80">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -465,7 +465,7 @@ export function DevToolsModal() {
                         value={jsonInput}
                         onChange={(e) => handleJsonConvert(e.target.value, selectedLanguage, rootClassName)}
                         placeholder="Paste JSON here..."
-                        className="w-full flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 leading-relaxed resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        className="w-full flex-1 bg-gray-900 border border-gray-600 rounded-sm p-3 text-sm font-mono text-gray-300 leading-relaxed resize-none focus:outline-hidden focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
                         spellCheck={false}
                       />
                       {jsonError && <p className="text-red-400 font-medium text-xs mt-3">{jsonError}</p>}
@@ -477,7 +477,7 @@ export function DevToolsModal() {
                           <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Generated Model</label>
                           <button 
                             onClick={() => copyToClipboard(generatedCode)}
-                            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition"
+                            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded-sm text-gray-200 transition"
                           >
                             Copy
                           </button>
@@ -489,7 +489,7 @@ export function DevToolsModal() {
                               type="text" 
                               value={rootClassName}
                               onChange={(e) => handleJsonConvert(jsonInput, selectedLanguage, e.target.value)}
-                              className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-purple-500 w-24"
+                              className="bg-gray-900 border border-gray-700 rounded-sm px-2 py-1 text-sm text-gray-300 focus:outline-hidden focus:border-purple-500 w-24"
                             />
                           </div>
                           <div className="flex items-center gap-2">
@@ -497,7 +497,7 @@ export function DevToolsModal() {
                             <select
                               value={selectedLanguage}
                               onChange={(e) => handleJsonConvert(jsonInput, e.target.value as Language, rootClassName)}
-                              className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-purple-500"
+                              className="bg-gray-900 border border-gray-700 rounded-sm px-2 py-1 text-sm text-gray-300 focus:outline-hidden focus:border-purple-500"
                             >
                               {LANGUAGES.map(lang => (
                                 <option key={lang} value={lang}>{lang}</option>
@@ -507,7 +507,7 @@ export function DevToolsModal() {
                         </div>
                       </div>
                       <div className="flex-1 overflow-hidden flex flex-col">
-                        <pre className="flex-1 overflow-y-auto text-purple-300 bg-gray-900/50 border border-purple-900/30 p-3 rounded text-sm font-mono break-all whitespace-pre-wrap custom-scrollbar">
+                        <pre className="flex-1 overflow-y-auto text-purple-300 bg-gray-900/50 border border-purple-900/30 p-3 rounded-sm text-sm font-mono break-all whitespace-pre-wrap custom-scrollbar">
                           {generatedCode || ' '}
                         </pre>
                       </div>
@@ -531,7 +531,7 @@ export function DevToolsModal() {
                         value={curlInput}
                         onChange={(e) => handleCurlConvert(e.target.value, curlTarget)}
                         placeholder="Paste cURL command here..."
-                        className="w-full flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 leading-relaxed resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        className="w-full flex-1 bg-gray-900 border border-gray-600 rounded-sm p-3 text-sm font-mono text-gray-300 leading-relaxed resize-none focus:outline-hidden focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
                         spellCheck={false}
                       />
                       {curlError && <p className="text-red-400 font-medium text-xs mt-3">{curlError}</p>}
@@ -543,7 +543,7 @@ export function DevToolsModal() {
                           <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Generated Client Code</label>
                           <button 
                             onClick={() => copyToClipboard(curlOutput)}
-                            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition"
+                            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded-sm text-gray-200 transition"
                           >
                             Copy
                           </button>
@@ -553,7 +553,7 @@ export function DevToolsModal() {
                           <select
                             value={curlTarget}
                             onChange={(e) => handleCurlConvert(curlInput, e.target.value)}
-                            className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-purple-500 max-w-xs"
+                            className="bg-gray-900 border border-gray-700 rounded-sm px-2 py-1 text-sm text-gray-300 focus:outline-hidden focus:border-purple-500 max-w-xs"
                           >
                             <option value="toBrowser">Browser (fetch)</option>
                             <option value="toNodeFetch">Node (fetch)</option>
@@ -574,7 +574,7 @@ export function DevToolsModal() {
                         </div>
                       </div>
                       <div className="flex-1 overflow-hidden flex flex-col">
-                        <pre className="flex-1 overflow-y-auto text-purple-300 bg-gray-900/50 border border-purple-900/30 p-3 rounded text-sm font-mono break-all whitespace-pre-wrap custom-scrollbar">
+                        <pre className="flex-1 overflow-y-auto text-purple-300 bg-gray-900/50 border border-purple-900/30 p-3 rounded-sm text-sm font-mono break-all whitespace-pre-wrap custom-scrollbar">
                           {curlOutput || ' '}
                         </pre>
                       </div>
@@ -593,13 +593,13 @@ export function DevToolsModal() {
                       <div className="flex items-center gap-4 bg-gray-900 p-2 rounded-lg w-fit border border-gray-700">
                         <button
                           onClick={() => handler(inputVal, 'encode')}
-                          className={`px-4 py-1.5 rounded text-sm font-medium transition ${currentMode === 'encode' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                          className={`px-4 py-1.5 rounded-sm text-sm font-medium transition ${currentMode === 'encode' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
                         >
                           Encode
                         </button>
                         <button
                           onClick={() => handler(inputVal, 'decode')}
-                          className={`px-4 py-1.5 rounded text-sm font-medium transition ${currentMode === 'decode' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                          className={`px-4 py-1.5 rounded-sm text-sm font-medium transition ${currentMode === 'decode' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
                         >
                           Decode
                         </button>
@@ -612,7 +612,7 @@ export function DevToolsModal() {
                             value={inputVal}
                             onChange={(e) => handler(e.target.value, currentMode)}
                             placeholder={`Type text to ${currentMode}...`}
-                            className="flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                            className="flex-1 bg-gray-900 border border-gray-600 rounded-sm p-3 text-sm font-mono text-gray-300 resize-none focus:outline-hidden focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                             spellCheck={false}
                           />
                         </div>
@@ -621,7 +621,7 @@ export function DevToolsModal() {
                             <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Output</label>
                             <button 
                               onClick={() => copyToClipboard(outputVal)}
-                              className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded"
+                              className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded-sm"
                             >
                               Copy
                             </button>
@@ -630,7 +630,7 @@ export function DevToolsModal() {
                             value={outputVal}
                             readOnly
                             placeholder="Result..."
-                            className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded p-3 text-sm font-mono text-purple-300 resize-none focus:outline-none"
+                            className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded-sm p-3 text-sm font-mono text-purple-300 resize-none focus:outline-hidden"
                             spellCheck={false}
                           />
                         </div>
@@ -650,18 +650,18 @@ export function DevToolsModal() {
                           max="100" 
                           value={uuidCount}
                           onChange={(e) => setUuidCount(parseInt(e.target.value) || 1)}
-                          className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-purple-500"
+                          className="w-20 bg-gray-900 border border-gray-600 rounded-sm px-2 py-1 text-sm text-gray-300 focus:outline-hidden focus:border-purple-500"
                         />
                         <button 
                           onClick={generateUUIDs}
-                          className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+                          className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-sm text-sm font-medium transition"
                         >
                           Generate
                         </button>
                       </div>
                       <button 
                         onClick={() => copyToClipboard(uuids.join('\n'))}
-                        className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+                        className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1.5 rounded-sm text-sm font-medium transition"
                       >
                         Copy All
                       </button>
@@ -669,11 +669,11 @@ export function DevToolsModal() {
 
                     <div className="flex-1 overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-2 custom-scrollbar">
                       {uuids.map((uuid, i) => (
-                        <div key={i} className="flex items-center justify-between group bg-gray-800/50 p-2 rounded border border-transparent hover:border-gray-600">
+                        <div key={i} className="flex items-center justify-between group bg-gray-800/50 p-2 rounded-sm border border-transparent hover:border-gray-600">
                           <span className="font-mono text-gray-300 text-sm select-all">{uuid}</span>
                           <button 
                             onClick={() => copyToClipboard(uuid)}
-                            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white transition text-xs bg-gray-700 px-2 py-1 rounded"
+                            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white transition text-xs bg-gray-700 px-2 py-1 rounded-sm"
                           >
                             Copy
                           </button>
@@ -687,14 +687,14 @@ export function DevToolsModal() {
                   <div className="flex flex-1 flex-col p-6 gap-4 overflow-hidden">
                     {/* Pattern and Flags Input */}
                     <div className="flex gap-2 items-center">
-                      <div className="flex-1 flex bg-gray-900 border border-gray-600 rounded focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500 transition overflow-hidden">
+                      <div className="flex-1 flex bg-gray-900 border border-gray-600 rounded-sm focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500 transition overflow-hidden">
                         <span className="text-gray-500 font-mono pl-3 py-2 select-none">/</span>
                         <input
                           type="text"
                           value={regexPattern}
                           onChange={(e) => setRegexPattern(e.target.value)}
                           placeholder="expression"
-                          className="flex-1 bg-transparent border-none outline-none text-purple-300 font-mono px-1 py-2 text-sm"
+                          className="flex-1 bg-transparent border-none outline-hidden text-purple-300 font-mono px-1 py-2 text-sm"
                           spellCheck={false}
                         />
                         <span className="text-gray-500 font-mono pr-1 py-2 select-none">/</span>
@@ -703,7 +703,7 @@ export function DevToolsModal() {
                           value={regexFlags}
                           onChange={(e) => setRegexFlags(e.target.value)}
                           placeholder="flags"
-                          className="w-20 bg-gray-800 border-l border-gray-600 outline-none text-purple-300 font-mono px-2 py-2 text-sm"
+                          className="w-20 bg-gray-800 border-l border-gray-600 outline-hidden text-purple-300 font-mono px-2 py-2 text-sm"
                           spellCheck={false}
                         />
                       </div>
@@ -717,7 +717,7 @@ export function DevToolsModal() {
                           value={regexTestString}
                           onChange={(e) => setRegexTestString(e.target.value)}
                           placeholder="Enter text to test here..."
-                          className="flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
+                          className="flex-1 bg-gray-900 border border-gray-600 rounded-sm p-3 text-sm font-mono text-gray-300 resize-none focus:outline-hidden focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
                           spellCheck={false}
                         />
                       </div>
@@ -725,7 +725,7 @@ export function DevToolsModal() {
                       {/* Results */}
                       <div className="flex-1 flex flex-col min-h-0">
                         <label className="text-xs text-gray-400 font-bold uppercase tracking-wide mb-2">Results</label>
-                        <div className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded p-4 overflow-y-auto custom-scrollbar">
+                        <div className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded-sm p-4 overflow-y-auto custom-scrollbar">
                           {renderRegexHighlight()}
                         </div>
                       </div>
@@ -741,13 +741,13 @@ export function DevToolsModal() {
                         <div className="flex gap-2">
                           <button 
                             onClick={() => handleJsonFormat('pretty')}
-                            className="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded transition"
+                            className="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded-sm transition"
                           >
                             Format (Pretty)
                           </button>
                           <button 
                             onClick={() => handleJsonFormat('minify')}
-                            className="text-[10px] bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded transition"
+                            className="text-[10px] bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded-sm transition"
                           >
                             Minify
                           </button>
@@ -757,7 +757,7 @@ export function DevToolsModal() {
                         value={jsonFormatterInput}
                         onChange={(e) => setJsonFormatterInput(e.target.value)}
                         placeholder="Paste unformatted JSON here..."
-                        className="flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
+                        className="flex-1 bg-gray-900 border border-gray-600 rounded-sm p-3 text-sm font-mono text-gray-300 resize-none focus:outline-hidden focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
                         spellCheck={false}
                       />
                       {jsonFormatterError && <p className="text-red-400 font-medium text-xs mt-2">{jsonFormatterError}</p>}
@@ -768,7 +768,7 @@ export function DevToolsModal() {
                         <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Formatted Output</label>
                         <button 
                           onClick={() => copyToClipboard(jsonFormatterOutput)}
-                          className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded"
+                          className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded-sm"
                         >
                           Copy
                         </button>
@@ -777,7 +777,7 @@ export function DevToolsModal() {
                         value={jsonFormatterOutput}
                         readOnly
                         placeholder="Result will appear here..."
-                        className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded p-3 text-sm font-mono text-purple-300 resize-none focus:outline-none custom-scrollbar"
+                        className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded-sm p-3 text-sm font-mono text-purple-300 resize-none focus:outline-hidden custom-scrollbar"
                         spellCheck={false}
                         wrap="off"
                       />
@@ -797,7 +797,7 @@ export function DevToolsModal() {
                             type="number"
                             value={epochTimestampInput}
                             onChange={(e) => setEpochTimestampInput(e.target.value)}
-                            className="bg-gray-800 border border-gray-600 rounded p-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-purple-500"
+                            className="bg-gray-800 border border-gray-600 rounded-sm p-2 text-sm text-gray-200 font-mono focus:outline-hidden focus:border-purple-500"
                           />
                         </div>
                         <div className="flex flex-col flex-[2]">
@@ -806,7 +806,7 @@ export function DevToolsModal() {
                             value={epochDateOutput}
                             readOnly
                             rows={2}
-                            className="bg-gray-800/50 border border-gray-700 rounded p-2 text-sm text-purple-300 font-mono resize-none focus:outline-none"
+                            className="bg-gray-800/50 border border-gray-700 rounded-sm p-2 text-sm text-purple-300 font-mono resize-none focus:outline-hidden"
                           />
                         </div>
                       </div>
@@ -822,7 +822,7 @@ export function DevToolsModal() {
                             type="datetime-local"
                             value={epochDateInput}
                             onChange={(e) => setEpochDateInput(e.target.value)}
-                            className="bg-gray-800 border border-gray-600 rounded p-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-purple-500"
+                            className="bg-gray-800 border border-gray-600 rounded-sm p-2 text-sm text-gray-200 font-mono focus:outline-hidden focus:border-purple-500"
                           />
                         </div>
                         <div className="flex flex-col flex-[2]">
@@ -831,7 +831,7 @@ export function DevToolsModal() {
                             value={epochTimestampOutput}
                             readOnly
                             rows={2}
-                            className="bg-gray-800/50 border border-gray-700 rounded p-2 text-sm text-purple-300 font-mono resize-none focus:outline-none"
+                            className="bg-gray-800/50 border border-gray-700 rounded-sm p-2 text-sm text-purple-300 font-mono resize-none focus:outline-hidden"
                           />
                         </div>
                       </div>
@@ -847,7 +847,7 @@ export function DevToolsModal() {
                         value={hashInput}
                         onChange={(e) => setHashInput(e.target.value)}
                         placeholder="Type text to hash..."
-                        className="flex-1 bg-gray-900 border border-gray-600 rounded p-3 text-sm font-mono text-gray-300 resize-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
+                        className="flex-1 bg-gray-900 border border-gray-600 rounded-sm p-3 text-sm font-mono text-gray-300 resize-none focus:outline-hidden focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition custom-scrollbar"
                         spellCheck={false}
                       />
                     </div>
@@ -857,7 +857,7 @@ export function DevToolsModal() {
                         <select
                           value={hashAlgo}
                           onChange={(e) => setHashAlgo(e.target.value)}
-                          className="bg-gray-900 border border-gray-600 rounded p-2 text-sm text-gray-200 font-medium focus:outline-none focus:border-purple-500 w-full md:w-1/2"
+                          className="bg-gray-900 border border-gray-600 rounded-sm p-2 text-sm text-gray-200 font-medium focus:outline-hidden focus:border-purple-500 w-full md:w-1/2"
                         >
                           <option value="MD5">MD5</option>
                           <option value="SHA-1">SHA-1</option>
@@ -871,7 +871,7 @@ export function DevToolsModal() {
                           <label className="text-xs text-gray-400 font-bold uppercase tracking-wide">Hash Result</label>
                           <button 
                             onClick={() => copyToClipboard(hashOutput)}
-                            className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded"
+                            className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded-sm"
                           >
                             Copy
                           </button>
@@ -880,7 +880,7 @@ export function DevToolsModal() {
                           value={hashOutput}
                           readOnly
                           placeholder="Hash will appear here..."
-                          className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded p-3 text-sm font-mono text-purple-300 resize-none focus:outline-none break-all"
+                          className="flex-1 bg-gray-900/50 border border-purple-900/30 rounded-sm p-3 text-sm font-mono text-purple-300 resize-none focus:outline-hidden break-all"
                         />
                       </div>
                     </div>
@@ -1014,7 +1014,7 @@ export function DevToolsModal() {
                               max={10000}
                               value={ltTotalRequests}
                               onChange={(e) => setLtTotalRequests(Math.min(10000, Math.max(1, parseInt(e.target.value) || 1)))}
-                              className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+                              className="w-20 bg-gray-900 border border-gray-600 rounded-sm px-2 py-1 text-sm text-gray-300 focus:outline-hidden focus:border-orange-500"
                               disabled={ltRunning}
                             />
                           </div>
@@ -1026,7 +1026,7 @@ export function DevToolsModal() {
                               max={200}
                               value={ltConcurrency}
                               onChange={(e) => setLtConcurrency(Math.min(200, Math.max(1, parseInt(e.target.value) || 1)))}
-                              className="w-16 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+                              className="w-16 bg-gray-900 border border-gray-600 rounded-sm px-2 py-1 text-sm text-gray-300 focus:outline-hidden focus:border-orange-500"
                               disabled={ltRunning}
                             />
                           </div>
@@ -1035,7 +1035,7 @@ export function DevToolsModal() {
                             <select
                               value={ltTimeout}
                               onChange={(e) => setLtTimeout(parseInt(e.target.value))}
-                              className="bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+                              className="bg-gray-900 border border-gray-600 rounded-sm px-2 py-1 text-sm text-gray-300 focus:outline-hidden focus:border-orange-500"
                               disabled={ltRunning}
                             >
                               <option value={5000}>5s</option>
@@ -1049,14 +1049,14 @@ export function DevToolsModal() {
                             <button
                               onClick={startTest}
                               disabled={ltTargets.every(t => !t.url.trim())}
-                              className="bg-orange-600 hover:bg-orange-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-5 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5"
+                              className="bg-orange-600 hover:bg-orange-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-5 py-1.5 rounded-sm text-sm font-medium transition flex items-center gap-1.5"
                             >
                               ⚡ Start Test
                             </button>
                           ) : (
                             <button
                               onClick={stopTest}
-                              className="bg-red-600 hover:bg-red-500 text-white px-5 py-1.5 rounded text-sm font-medium transition flex items-center gap-1.5"
+                              className="bg-red-600 hover:bg-red-500 text-white px-5 py-1.5 rounded-sm text-sm font-medium transition flex items-center gap-1.5"
                             >
                               ■ Stop
                             </button>
@@ -1085,14 +1085,14 @@ export function DevToolsModal() {
                           <div className="flex gap-2">
                             <button
                               onClick={distributeWeightsEvenly}
-                              className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded"
+                              className="text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 px-2 py-0.5 rounded-sm"
                               disabled={ltRunning}
                             >
                               Even Weights
                             </button>
                             <button
                               onClick={addTarget}
-                              className="text-[10px] text-orange-400 hover:text-orange-300 bg-orange-900/30 px-2 py-0.5 rounded"
+                              className="text-[10px] text-orange-400 hover:text-orange-300 bg-orange-900/30 px-2 py-0.5 rounded-sm"
                               disabled={ltRunning}
                             >
                               + Add Target
@@ -1101,7 +1101,7 @@ export function DevToolsModal() {
                         </div>
 
                         {totalWeight !== 100 && ltTargets.length > 0 && (
-                          <div className="text-xs text-yellow-400 bg-yellow-900/20 border border-yellow-900/40 rounded px-3 py-1.5 mb-3">
+                          <div className="text-xs text-yellow-400 bg-yellow-900/20 border border-yellow-900/40 rounded-sm px-3 py-1.5 mb-3">
                             ⚠ Weights sum to {totalWeight}% (should be 100%)
                           </div>
                         )}
@@ -1114,7 +1114,7 @@ export function DevToolsModal() {
                                 <select
                                   value={target.method}
                                   onChange={(e) => updateTarget(target.id, { method: e.target.value as LTHttpMethod })}
-                                  className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs font-bold text-green-400 focus:outline-none focus:border-orange-500 w-20"
+                                  className="bg-gray-800 border border-gray-600 rounded-sm px-2 py-1 text-xs font-bold text-green-400 focus:outline-hidden focus:border-orange-500 w-20"
                                   disabled={ltRunning}
                                 >
                                   {LT_METHODS.map(m => (
@@ -1126,7 +1126,7 @@ export function DevToolsModal() {
                                   value={target.url}
                                   onChange={(e) => updateTarget(target.id, { url: e.target.value })}
                                   placeholder="https://api.example.com/endpoint"
-                                  className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300 font-mono focus:outline-none focus:border-orange-500"
+                                  className="flex-1 bg-gray-800 border border-gray-600 rounded-sm px-2 py-1 text-sm text-gray-300 font-mono focus:outline-hidden focus:border-orange-500"
                                   disabled={ltRunning}
                                 />
                                 <div className="flex items-center gap-1">
@@ -1136,7 +1136,7 @@ export function DevToolsModal() {
                                     max={100}
                                     value={target.weight}
                                     onChange={(e) => updateTarget(target.id, { weight: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })}
-                                    className="w-14 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 text-center focus:outline-none focus:border-orange-500"
+                                    className="w-14 bg-gray-800 border border-gray-600 rounded-sm px-2 py-1 text-xs text-gray-300 text-center focus:outline-hidden focus:border-orange-500"
                                     disabled={ltRunning}
                                   />
                                   <span className="text-[10px] text-gray-500">%</span>
@@ -1180,7 +1180,7 @@ export function DevToolsModal() {
                                           value={key}
                                           onChange={(e) => updateTargetHeader(target.id, key, e.target.value, value)}
                                           placeholder="Header name"
-                                          className="w-36 bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[11px] text-gray-300 font-mono focus:outline-none focus:border-orange-500"
+                                          className="w-36 bg-gray-800 border border-gray-600 rounded-sm px-2 py-0.5 text-[11px] text-gray-300 font-mono focus:outline-hidden focus:border-orange-500"
                                           disabled={ltRunning}
                                         />
                                         <span className="text-gray-600 text-[10px]">:</span>
@@ -1189,7 +1189,7 @@ export function DevToolsModal() {
                                           value={value}
                                           onChange={(e) => updateTargetHeader(target.id, key, key, e.target.value)}
                                           placeholder="Value"
-                                          className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[11px] text-gray-300 font-mono focus:outline-none focus:border-orange-500"
+                                          className="flex-1 bg-gray-800 border border-gray-600 rounded-sm px-2 py-0.5 text-[11px] text-gray-300 font-mono focus:outline-hidden focus:border-orange-500"
                                           disabled={ltRunning}
                                         />
                                         <button
@@ -1220,7 +1220,7 @@ export function DevToolsModal() {
                                     onChange={(e) => updateTarget(target.id, { body: e.target.value })}
                                     placeholder='{"key": "value"}'
                                     rows={2}
-                                    className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-xs font-mono text-gray-300 resize-none focus:outline-none focus:border-orange-500 mt-1"
+                                    className="w-full bg-gray-800 border border-gray-600 rounded-sm p-2 text-xs font-mono text-gray-300 resize-none focus:outline-hidden focus:border-orange-500 mt-1"
                                     disabled={ltRunning}
                                   />
                                 </div>
@@ -1252,7 +1252,7 @@ export function DevToolsModal() {
                               <div className="flex-1" />
                               <button
                                 onClick={exportToCsv}
-                                className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1 rounded text-xs font-medium transition flex items-center gap-1.5 border border-gray-600"
+                                className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1 rounded-sm text-xs font-medium transition flex items-center gap-1.5 border border-gray-600"
                               >
                                 ⬇ Export CSV
                               </button>
@@ -1320,7 +1320,7 @@ export function DevToolsModal() {
                                         : s < 400 ? 'text-yellow-400 bg-yellow-900/30 border-yellow-900/50'
                                         : 'text-red-400 bg-red-900/30 border-red-900/50'
                                       return (
-                                        <div key={status} className={`px-2.5 py-1 rounded border text-xs font-mono font-medium ${color}`}>
+                                        <div key={status} className={`px-2.5 py-1 rounded-sm border text-xs font-mono font-medium ${color}`}>
                                           {s === 0 ? 'ERR' : status}: {count}
                                         </div>
                                       )

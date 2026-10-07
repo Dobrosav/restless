@@ -18,7 +18,7 @@ function RequestItem({ request, isActive, onClick, onDelete }: { request: any; i
     <div className="flex items-center gap-1 group">
       <button
         onClick={onClick}
-        className={`flex-1 text-left text-sm py-1 px-2 rounded flex items-center gap-2 ${isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'
+        className={`flex-1 text-left text-sm py-1 px-2 rounded-sm flex items-center gap-2 ${isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'
           }`}
       >
         <span className={`text-xs font-mono w-10 ${methodColors[request.method] || 'text-gray-400'}`}>
@@ -80,7 +80,7 @@ function CollectionNode({
   return (
     <div className="group/node mt-1">
       <div 
-        className="flex items-center gap-1 relative hover:bg-gray-700 rounded transition-colors group/item" 
+        className="flex items-center gap-1 relative hover:bg-gray-700 rounded-sm transition-colors group/item" 
         style={{ paddingLeft: `${depth * 12}px` }}
       >
         <button
@@ -90,7 +90,7 @@ function CollectionNode({
           <span className="mr-1 text-xs">{isExpanded ? '▼' : '▶'}</span>
           <span className="truncate">{collection.name}</span>
         </button>
-        <div className="flex bg-gray-700 opacity-0 group-hover/item:opacity-100 transition-opacity absolute right-1 items-center px-1 rounded">
+        <div className="flex bg-gray-700 opacity-0 group-hover/item:opacity-100 transition-opacity absolute right-1 items-center px-1 rounded-sm">
           <button
             onClick={() => setShowNewFolder(true)}
             className="text-[10px] text-blue-400 hover:text-blue-300 px-1.5"
@@ -119,7 +119,7 @@ function CollectionNode({
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             placeholder="Folder name"
-            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs text-white"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-0.5 text-xs text-white"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleCreateSubFolder()}
           />
@@ -259,7 +259,7 @@ export function Sidebar() {
   }
 
   return (
-    <div className={`relative transition-all duration-300 flex-shrink-0 ${isMinimized ? 'w-0' : 'w-64'}`}>
+    <div className={`relative transition-all duration-300 shrink-0 ${isMinimized ? 'w-0' : 'w-64'}`}>
       {isMinimized && (
         <button
           onClick={() => setIsMinimized(false)}
@@ -274,7 +274,7 @@ export function Sidebar() {
         <div className="p-3 border-b border-gray-700">
           <div className="flex items-center justify-between">
             <img src="./logo.png" alt="Restless" className="h-[98px] -ml-3 w-auto object-contain" />
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
             <div
               className="relative"
               onMouseEnter={() => {
@@ -286,12 +286,12 @@ export function Sidebar() {
               }}
             >
               <button
-                className="text-xs bg-gray-600 px-2 py-1 rounded hover:bg-gray-500 transition-colors whitespace-nowrap"
+                className="text-xs bg-gray-600 px-2 py-1 rounded-sm hover:bg-gray-500 transition-colors whitespace-nowrap"
               >
                 Import ▾
               </button>
               {showImportDropdown && (
-                <div className="absolute top-full left-0 mt-1 w-36 bg-gray-700 border border-gray-600 rounded shadow-lg z-50">
+                <div className="absolute top-full left-0 mt-1 w-36 bg-gray-700 border border-gray-600 rounded-sm shadow-lg z-50">
                   <button
                     onClick={() => { setShowImportDropdown(false); handleImport() }}
                     className="w-full text-left text-xs px-3 py-2 hover:bg-gray-600 text-gray-200 rounded-t"
@@ -309,13 +309,13 @@ export function Sidebar() {
             </div>
             <button
               onClick={createRequest}
-              className="text-xs bg-blue-600 px-2 py-1 rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
+              className="text-xs bg-blue-600 px-2 py-1 rounded-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
             >
               + New
             </button>
             <button
               onClick={() => setIsMinimized(true)}
-              className="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-700 transition-colors ml-1"
+              className="text-gray-400 hover:text-white p-1 rounded-sm hover:bg-gray-700 transition-colors ml-1"
               title="Minimize Sidebar"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -347,7 +347,7 @@ export function Sidebar() {
                   value={newCollectionName}
                   onChange={(e) => setNewCollectionName(e.target.value)}
                   placeholder="Collection name"
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-sm px-2 py-1 text-xs text-white"
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateCollection()}
                 />
@@ -400,7 +400,7 @@ export function Sidebar() {
       </div>
 
       {showImportCurlModal && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-4 rounded-lg w-[520px] max-w-full mx-4 shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-white font-medium">Import cURL</h3>
@@ -416,7 +416,7 @@ export function Sidebar() {
               value={curlInput}
               onChange={(e) => { setCurlInput(e.target.value); setCurlError('') }}
               placeholder={`curl -X POST 'https://api.example.com/items' -H 'Content-Type: application/json' -d '{"key":"value"}'`}
-              className="w-full h-40 bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-gray-200 font-mono resize-none focus:outline-none focus:border-blue-500"
+              className="w-full h-40 bg-gray-900 border border-gray-600 rounded-sm px-3 py-2 text-sm text-gray-200 font-mono resize-none focus:outline-hidden focus:border-blue-500"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Escape') setShowImportCurlModal(false)
@@ -429,13 +429,13 @@ export function Sidebar() {
             <div className="flex gap-2 mt-3">
               <button
                 onClick={handleImportCurl}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-sm text-sm font-medium"
               >
                 Import
               </button>
               <button
                 onClick={() => setShowImportCurlModal(false)}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm"
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-sm text-sm"
               >
                 Cancel
               </button>
