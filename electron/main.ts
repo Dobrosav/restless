@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, nativeImage, Menu, MenuItem } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, nativeImage, Menu, MenuItem, session } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -108,7 +108,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
     },
     show: true,
   })
@@ -225,6 +226,24 @@ function setupAutoUpdater() {
 app.disableHardwareAcceleration();
 
 app.whenReady().then(() => {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const responseHeaders = { ...details.responseHeaders }
+    for (const key of Object.keys(responseHeaders)) {
+      const lower = key.toLowerCase()
+      if (
+        lower === 'access-control-allow-origin' ||
+        lower === 'access-control-allow-headers' ||
+        lower === 'access-control-allow-methods'
+      ) {
+        delete responseHeaders[key]
+      }
+    }
+    responseHeaders['Access-Control-Allow-Origin'] = ['*']
+    responseHeaders['Access-Control-Allow-Headers'] = ['*']
+    responseHeaders['Access-Control-Allow-Methods'] = ['*']
+    callback({ responseHeaders })
+  })
+
   createWindow()
 
   app.on('activate', () => {
