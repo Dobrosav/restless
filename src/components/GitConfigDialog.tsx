@@ -55,6 +55,7 @@ function ColorPickerField({
 }: ColorPickerFieldProps) {
   const normalizedHex = normalizeHexColor(value) || '#000000'
   const [hsv, setHsv] = useState<{ h: number; s: number; v: number }>(() => hexToHsv(normalizedHex))
+  const [openUpward, setOpenUpward] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const svBoxRef = useRef<HTMLDivElement>(null)
@@ -77,6 +78,14 @@ function ColorPickerField({
       dragCleanupRef.current?.()
     }
   }, [])
+
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      setOpenUpward(spaceBelow < 280 && rect.top > spaceBelow)
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -190,13 +199,13 @@ function ColorPickerField({
       {isOpen && (
         <div
           ref={popoverRef}
-          className="absolute left-0 top-full mt-2 z-50 w-64 bg-gray-800 border border-gray-600 rounded-md shadow-2xl p-3 space-y-3"
+          className={`absolute left-0 ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'} z-50 w-64 bg-gray-800 border border-gray-600 rounded-md shadow-2xl p-2.5 space-y-2`}
         >
           {/* 2D Saturation / Value box */}
           <div
             ref={svBoxRef}
             onMouseDown={handleSvMouseDown}
-            className="h-36 w-full rounded-sm relative cursor-crosshair select-none border border-gray-600 overflow-hidden"
+            className="h-28 w-full rounded-sm relative cursor-crosshair select-none border border-gray-600 overflow-hidden"
             style={{ backgroundColor: `hsl(${hsv.h}, 100%, 50%)` }}
           >
             <div
@@ -365,7 +374,7 @@ export function GitConfigDialog({ isOpen, onClose, onSave, theme, onThemeChange 
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && activePickerRef.current === null) {
           onClose()
