@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     name: Run Tests
@@ -28,14 +31,12 @@ jobs:
 
       - name: Tag release version on main
         if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           VERSION="v$(node -p "require('./package.json').version")"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -f "$VERSION"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "refs/tags/$VERSION" --force
+          git push origin "refs/tags/$VERSION" --force
 
   build:
     needs: test
@@ -60,19 +61,19 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: npm run electron:build:mac -- --publish ${{ github.ref == 'refs/heads/main' && 'always' || 'never' }}
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Build and Publish Windows
         if: matrix.os == 'windows-latest'
         run: npm run electron:build:win -- --publish ${{ github.ref == 'refs/heads/main' && 'always' || 'never' }}
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Build and Publish Linux
         if: matrix.os == 'ubuntu-latest'
         run: npm run electron:build:linux -- --publish ${{ github.ref == 'refs/heads/main' && 'always' || 'never' }}
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Upload Mac Artifacts
         if: matrix.os == 'macos-latest'
