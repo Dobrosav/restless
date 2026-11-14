@@ -38,6 +38,34 @@ jobs:
           git tag -f "$VERSION"
           git push origin "refs/tags/$VERSION" --force
 
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Tag release version on main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f "$VERSION"
+          git push origin "refs/tags/$VERSION" --force
+
   build:
     needs: test
     runs-on: ${{ matrix.os }}
@@ -74,6 +102,7 @@ jobs:
         run: npm run electron:build:linux -- --publish ${{ github.ref == 'refs/heads/main' && 'always' || 'never' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+
 
       - name: Upload Mac Artifacts
         if: matrix.os == 'macos-latest'
