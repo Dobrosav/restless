@@ -18,6 +18,7 @@ import {
   applyTheme,
   normalizeHexColor,
 } from './utils/theme'
+import pkg from '../package.json'
 
 function AppContent() {
   const { workspace, setWorkspace, isLoading, activeTabId } = useApp()
@@ -219,6 +220,7 @@ function AppContent() {
             {isLoading && (
               <span className="text-sm text-yellow-400">Sending...</span>
             )}
+            <span className="text-xs text-gray-500 select-none">v{pkg.version}</span>
             <button
               onClick={() => setShowGitConfigDialog(true)}
               className="text-xs text-gray-500 hover:text-white"
