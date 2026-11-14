@@ -14,6 +14,8 @@ interface Config {
   gitUserName: string
   gitUserEmail: string
   gitRemoteUrl: string
+  themeBgColor?: string
+  themeTextColor?: string
 }
 
 function getConfigPath(): string {
@@ -515,6 +517,7 @@ ipcMain.handle('git:setConfig', async (_, newConfig: { userName?: string; userEm
   try {
     const currentConfig = getConfig()
     const updatedConfig: Config = {
+      ...currentConfig,
       gitUserName: newConfig.gitUserName || newConfig.userName || currentConfig.gitUserName,
       gitUserEmail: newConfig.gitUserEmail || newConfig.userEmail || currentConfig.gitUserEmail,
       gitRemoteUrl: currentConfig.gitRemoteUrl
@@ -528,6 +531,36 @@ ipcMain.handle('git:setConfig', async (_, newConfig: { userName?: string; userEm
     return true
   } catch (error) {
     console.error('Error setting config:', error)
+    return false
+  }
+})
+
+ipcMain.handle('theme:getConfig', async () => {
+  try {
+    const cfg = getConfig()
+    return {
+      bgColor: cfg.themeBgColor || '#111827',
+      textColor: cfg.themeTextColor || '#ffffff'
+    }
+  } catch (error) {
+    console.error('Error getting theme config:', error)
+    return { bgColor: '#111827', textColor: '#ffffff' }
+  }
+})
+
+ipcMain.handle('theme:setConfig', async (_, newTheme: { bgColor: string; textColor: string }) => {
+  try {
+    const currentConfig = getConfig()
+    const updatedConfig: Config = {
+      ...currentConfig,
+      themeBgColor: newTheme.bgColor,
+      themeTextColor: newTheme.textColor
+    }
+    config = updatedConfig
+    saveConfig(config)
+    return true
+  } catch (error) {
+    console.error('Error setting theme config:', error)
     return false
   }
 })

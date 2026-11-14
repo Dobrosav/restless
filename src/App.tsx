@@ -10,10 +10,54 @@ import { JwtDecoderModal } from './components/JwtDecoderModal'
 import { DevToolsModal } from './components/DevToolsModal'
 import { Collection, Environment } from './types'
 import { useEffect, useState } from 'react'
+import {
+  ThemeConfig,
+  DEFAULT_THEME,
+  loadThemeFromStorage,
+  saveThemeToStorage,
+  applyTheme,
+  normalizeHexColor,
+} from './utils/theme'
 
 function AppContent() {
   const { workspace, setWorkspace, isLoading, activeTabId } = useApp()
   const [showGitConfigDialog, setShowGitConfigDialog] = useState(false)
+  const [theme, setTheme] = useState<ThemeConfig>(() => loadThemeFromStorage())
+
+  useEffect(() => {
+    applyTheme(theme)
+  }, [theme])
+
+  useEffect(() => {
+    const syncThemeFromDisk = async () => {
+      try {
+        const diskTheme = await window.electronAPI?.themeGetConfig?.()
+        if (diskTheme) {
+          const resolvedTheme: ThemeConfig = {
+            bgColor: normalizeHexColor(diskTheme.bgColor) || DEFAULT_THEME.bgColor,
+            textColor: normalizeHexColor(diskTheme.textColor) || DEFAULT_THEME.textColor,
+          }
+          setTheme(resolvedTheme)
+          saveThemeToStorage(resolvedTheme)
+          applyTheme(resolvedTheme)
+        }
+      } catch (err) {
+        console.error('Failed to load theme config:', err)
+      }
+    }
+    syncThemeFromDisk()
+  }, [])
+
+  const handleThemeChange = async (newTheme: ThemeConfig) => {
+    setTheme(newTheme)
+    saveThemeToStorage(newTheme)
+    applyTheme(newTheme)
+    try {
+      await window.electronAPI?.themeSetConfig?.(newTheme)
+    } catch (err) {
+      console.error('Failed to save theme config:', err)
+    }
+  }
 
   const loadCollections = async (dirPath: string): Promise<Collection[]> => {
     const collections: Collection[] = []
@@ -148,7 +192,10 @@ function AppContent() {
   }
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex">
+    <div
+      className="h-screen bg-gray-900 text-white flex"
+      style={{ backgroundColor: theme.bgColor, color: theme.textColor }}
+    >
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="h-14 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4 overflow-visible relative">
@@ -200,6 +247,8 @@ function AppContent() {
         isOpen={showGitConfigDialog} 
         onClose={() => setShowGitConfigDialog(false)}
         onSave={handleGitConfigSave}
+        theme={theme}
+        onThemeChange={handleThemeChange}
       />
     </div>
   )
