@@ -51,6 +51,8 @@ export interface ElectronAPI {
   gitDiff: (file?: string) => Promise<string>
   gitGetConfig: () => Promise<{ userName: string; userEmail: string }>
   gitSetConfig: (config: { userName: string; userEmail: string }) => Promise<boolean>
+  themeGetConfig: () => Promise<{ bgColor: string; textColor: string }>
+  themeSetConfig: (theme: { bgColor: string; textColor: string }) => Promise<boolean>
   gitIsConfigSet: () => Promise<boolean>
   gitSetRemote: (remoteUrl: string) => Promise<boolean>
   gitGetRemote: () => Promise<string>

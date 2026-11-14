@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitDiff: (file?: string) => ipcRenderer.invoke('git:diff', file) as Promise<string>,
   gitGetConfig: () => ipcRenderer.invoke('git:getConfig') as Promise<{ userName: string; userEmail: string }>,
   gitSetConfig: (config: { userName: string; userEmail: string }) => ipcRenderer.invoke('git:setConfig', config) as Promise<boolean>,
+  themeGetConfig: () => ipcRenderer.invoke('theme:getConfig') as Promise<{ bgColor: string; textColor: string }>,
+  themeSetConfig: (theme: { bgColor: string; textColor: string }) => ipcRenderer.invoke('theme:setConfig', theme) as Promise<boolean>,
   gitIsConfigSet: () => ipcRenderer.invoke('git:isConfigSet') as Promise<boolean>,
   gitSetRemote: (remoteUrl: string) => ipcRenderer.invoke('git:setRemote', remoteUrl) as Promise<boolean>,
   gitGetRemote: () => ipcRenderer.invoke('git:getRemote') as Promise<string>,

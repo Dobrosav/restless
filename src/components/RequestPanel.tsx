@@ -91,7 +91,7 @@ function SyntaxEditor({ value, onChange, language }: { value: string, onChange: 
           fontSize: '12px',
           lineHeight: '1.5',
           color: 'transparent',
-          caretColor: 'white',
+          caretColor: 'var(--color-white, white)',
           whiteSpace: 'pre',
           tabSize: 2,
         }}
